@@ -16,7 +16,7 @@ def main():
 
     # Create account
     account_parser = subparsers.add_parser("create-account")
-    account_parser.add_argument("--user_id", required=True)
+    account_parser.add_argument("--email", required=True)
     account_parser.add_argument("--brokerage", required=True)
     account_parser.add_argument("--account_number", required=True)
     account_parser.add_argument("--nickname", default="")
@@ -34,7 +34,7 @@ def main():
         create_user(args.email, args.name)
 
     elif args.command == "create-account":
-        create_account(args.user_id, args.brokerage, args.account_number, args.nickname)
+        create_account(args.email, args.brokerage, args.account_number, args.nickname)
 
     elif args.command == "import":
         if args.broker.lower() == "schwab" and args.format.lower() == "lot_details":
@@ -43,7 +43,17 @@ def main():
                 print(txn)
         else:
             print("Unsupported broker or format combination.")
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":
     main()
+
+#
+#
+# C:\Users\SHANMUGV\source\repos\go-fireball\portana\backend>poetry run python -m app
+#
+# C:\Users\SHANMUGV\source\repos\go-fireball\portana\backend>
+# Why the error didn't appear
+# This is the content of app/__main__.py

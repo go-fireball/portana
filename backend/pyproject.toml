@@ -1,9 +1,9 @@
 [project]
-name = "portana-backend"
+name = "portana"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "venkatachalapatee@outlook.com"}
+    { name = "venkatachalapatee@outlook.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.12"
@@ -15,6 +15,8 @@ dependencies = [
     "pandas (>=2.2.3,<3.0.0)"
 ]
 
+[tool.poetry]
+package-mode = false
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

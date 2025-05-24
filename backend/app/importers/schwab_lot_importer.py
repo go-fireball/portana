@@ -63,10 +63,3 @@ def import_schwab_lot_details(file_path: str, account_number: str) -> List[Dict]
             continue  # skip non-parsable rows
 
     return transactions
-
-
-# Use the generalized parser on Lot-Details (2).csv which contains options
-parsed_lot_txns = import_schwab_lot_details(lot_details_updated_path, account_number="XXX290")
-
-# Show a few synthetic transactions parsed
-parsed_lot_txns[:5]
