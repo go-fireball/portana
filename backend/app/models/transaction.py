@@ -22,3 +22,5 @@ class Transaction(Base):
 
     option_details = Column(JSON, nullable=True)
     journal_details = Column(JSON, nullable=True)
+    source = Column(String, nullable=True)
+

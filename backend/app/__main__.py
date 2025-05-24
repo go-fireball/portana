@@ -17,14 +17,15 @@ def main():
     # Create account
     account_parser = subparsers.add_parser("create-account")
     account_parser.add_argument("--email", required=True)
-    account_parser.add_argument("--brokerage", required=True)
+    account_parser.add_argument("--brokerage", required=True, choices=["schwab", "fidelity", "vanguard"])
     account_parser.add_argument("--account_number", required=True)
     account_parser.add_argument("--nickname", default="")
 
     # Import file
     import_parser = subparsers.add_parser("import")
-    import_parser.add_argument("--broker", required=True)
+    import_parser.add_argument("--broker", required=True, choices=["schwab", "fidelity", "vanguard"])
     import_parser.add_argument("--format", required=True)
+    import_parser.add_argument("--email", required=True)
     import_parser.add_argument("--account", required=True)
     import_parser.add_argument("--file", required=True)
 
@@ -38,7 +39,7 @@ def main():
 
     elif args.command == "import":
         if args.broker.lower() == "schwab" and args.format.lower() == "lot_details":
-            transactions = import_schwab_lot_details(args.file, args.account)
+            transactions = import_schwab_lot_details(args.file, args.email, args.account)
             for txn in transactions:
                 print(txn)
         else:
@@ -49,11 +50,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-#
-#
-# C:\Users\SHANMUGV\source\repos\go-fireball\portana\backend>poetry run python -m app
-#
-# C:\Users\SHANMUGV\source\repos\go-fireball\portana\backend>
-# Why the error didn't appear
-# This is the content of app/__main__.py

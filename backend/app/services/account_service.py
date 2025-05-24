@@ -25,5 +25,5 @@ def create_account(email: str, brokerage: str, account_number: str, nickname: st
     )
     session.add(account)
     session.commit()
-    print(f"✅ Created account: {account.account_id} ({brokerage} - {account_number})")
+    print(f"Created account: {account.account_id} ({brokerage} - {account_number})")
     return account.account_id
