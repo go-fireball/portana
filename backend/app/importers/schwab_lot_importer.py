@@ -30,13 +30,18 @@ def import_schwab_lot_details(file_path: str, email: str, account_number: str) -
 
     for i in range(len(df)):
         row = df.iloc[i]
-        first_cell = str(row.iloc[0])
+        first_cell = str(row.iloc[0]).strip()
+
+        # Skip blank rows
+        if first_cell == "" or all(str(cell).strip() == "" for cell in row):
+            continue
 
         # Detect start of a new section
         if "Lot Details" in first_cell:
             current_symbol = first_cell.replace(" Lot Details", "").split(" for")[0].strip()
             option_meta = None
 
+            # Try parsing as option
             parts = current_symbol.split()
             if len(parts) >= 4:
                 try:
@@ -52,16 +57,22 @@ def import_schwab_lot_details(file_path: str, email: str, account_number: str) -
                     current_symbol = parts[0]
                 except Exception:
                     pass
-
             continue
 
+        # Skip subtotal rows
+        if first_cell.lower() == "total":
+            continue
+
+        # Try parsing a valid row
         try:
-            open_date = datetime.strptime(str(row.iloc[0]).strip(), "%m/%d/%Y").date()
+            open_date = datetime.strptime(first_cell, "%m/%d/%Y").date()
             quantity = float(str(row.iloc[1]).strip())
+
             cost_share_str = str(row.iloc[3]).replace("$", "").replace(",", "").strip()
             cost_per_share = float(cost_share_str) if cost_share_str not in ("--", "") else None
 
             action = "sell_to_open" if quantity < 0 and option_meta else "buy"
+            instrument_type = "option" if option_meta else "stock"
 
             txn = Transaction(
                 account_id=account.account_id,
@@ -71,13 +82,13 @@ def import_schwab_lot_details(file_path: str, email: str, account_number: str) -
                 price=cost_per_share,
                 date=open_date,
                 source="imported_lot",
+                instrument_type=instrument_type,
                 option_details=option_meta
             )
             session.add(txn)
             transactions.append(txn)
-
         except Exception:
-            continue
+            continue  # Skip unparsable rows
 
     session.commit()
     print(f"✅ Imported {len(transactions)} transactions from {file_path}")
