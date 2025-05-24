@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:17
+    container_name: portana-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: portana
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: portana
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
