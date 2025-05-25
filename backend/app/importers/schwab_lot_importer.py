@@ -69,7 +69,7 @@ def import_schwab_lot_details(file_path: str, email: str, account_number: str) -
             open_date = datetime.strptime(first_cell, "%m/%d/%Y").date()
             quantity_str = str(row.iloc[1]).replace(",", "").strip()
             quantity = float(quantity_str) if quantity_str else 0.0
-            quantity = round(abs(quantity), 5)
+            quantity = round(quantity, 5)
 
             cost_share_str = str(row.iloc[3]).replace("$", "").replace(",", "").strip()
             cost_per_share = float(cost_share_str) if cost_share_str not in ("--", "") else None

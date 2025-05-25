@@ -79,6 +79,8 @@ def recalculate_positions(email: str):
             if quantity == 0:
                 continue
             avg_cost = total_cost / quantity if quantity else None
+            avg_cost = round(avg_cost, 5) if avg_cost else None
+            quantity = round(quantity, 5)
 
             pos = Position(
                 account_id=account.account_id,
