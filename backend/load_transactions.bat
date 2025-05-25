@@ -12,5 +12,8 @@ poetry run python -m app import --broker schwab --format lot_details --email ven
 && poetry run python -m app import --broker schwab --format lot_details --email venkatachalapatee@gmail.com --account 1290 --file .\temp_data\nvda_3_1290.csv ^
 && poetry run python -m app import --broker schwab --format lot_details --email venkatachalapatee@gmail.com --account 1290 --file .\temp_data\nvda_4_1290.csv ^
 && poetry run python -m app import --broker schwab --format lot_details --email venkatachalapatee@gmail.com --account 1290 --file .\temp_data\nvda_5_1290.csv ^
-&& poetry run python -m app import --broker schwab --format lot_details --email venkatachalapatee@gmail.com --account 1290 --file .\temp_data\nvda_6_1290.csv
+&& poetry run python -m app import --broker schwab --format lot_details --email venkatachalapatee@gmail.com --account 1290 --file .\temp_data\nvda_6_1290.csv ^
+&& poetry run python -m app import --broker schwab --format lot_details --email venkatachalapatee@gmail.com --account 1290 --file .\temp_data\amzn_1_1290.csv ^
+&& poetry run python -m app import --broker schwab --format lot_details --email venkatachalapatee@gmail.com --account 1290 --file .\temp_data\msft_1_1290.csv ^
+&& poetry run python -m app import --broker schwab --format lot_details --email venkatachalapatee@gmail.com --account 1290 --file .\temp_data\tsla_1_1290.csv
 
