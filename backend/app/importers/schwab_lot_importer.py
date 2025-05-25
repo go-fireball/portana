@@ -5,6 +5,7 @@ import pandas as pd
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
+from app.models import TransactionType
 from app.models.account import Account
 from app.models.transaction import Transaction
 from app.models.user import User
@@ -54,7 +55,7 @@ def import_schwab_lot_details(file_path: str, email: str, account_number: str) -
                         "strike": strike,
                         "type": opt_type
                     }
-                    current_symbol = parts[0]
+                    current_symbol = f"{option_meta['base_symbol']}_{option_meta['expiry']}_{option_meta['strike']}_{option_meta['type'].upper()}"
                 except Exception:
                     pass
             continue
@@ -66,19 +67,31 @@ def import_schwab_lot_details(file_path: str, email: str, account_number: str) -
         # Try parsing a valid row
         try:
             open_date = datetime.strptime(first_cell, "%m/%d/%Y").date()
-            quantity = float(str(row.iloc[1]).strip())
+            quantity_str = str(row.iloc[1]).replace(",", "").strip()
+            quantity = float(quantity_str) if quantity_str else 0.0
+            quantity = round(abs(quantity), 5)
 
             cost_share_str = str(row.iloc[3]).replace("$", "").replace(",", "").strip()
             cost_per_share = float(cost_share_str) if cost_share_str not in ("--", "") else None
+            cost_per_share = round(cost_per_share, 5)
 
-            action = "sell_to_open" if quantity < 0 and option_meta else "buy"
+            # Set action depending on the transaction type
+            if quantity < 0 and option_meta:  # SELL TO OPEN for options
+                action = TransactionType.SELL_TO_OPEN.value
+            elif quantity > 0 and option_meta:  # BUY TO OPEN for options
+                action = TransactionType.BUY_TO_OPEN.value
+            elif quantity < 0:  # SELL for stocks
+                action = TransactionType.SELL.value
+            else:  # BUY for stocks
+                action = TransactionType.BUY.value
+
             instrument_type = "option" if option_meta else "stock"
 
             txn = Transaction(
                 account_id=account.account_id,
                 symbol=current_symbol,
                 action=action,
-                quantity=abs(quantity),
+                quantity=abs(quantity) if action != TransactionType.SELL_TO_OPEN.value else -abs(quantity), # wouldn't quantity=quantity would solve this??
                 price=cost_per_share,
                 date=open_date,
                 source="imported_lot",
@@ -91,5 +104,5 @@ def import_schwab_lot_details(file_path: str, email: str, account_number: str) -
             continue  # Skip unparsable rows
 
     session.commit()
-    print(f"✅ Imported {len(transactions)} transactions from {file_path}")
+    print(f"Imported {len(transactions)} transactions from {file_path}")
     return transactions

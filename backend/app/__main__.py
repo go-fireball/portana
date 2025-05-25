@@ -1,7 +1,9 @@
 import argparse
+import sys
 
 from app.importers.schwab_lot_importer import import_schwab_lot_details
 from app.services.account_service import create_account
+from app.services.position_service import recalculate_positions
 from app.services.user_service import create_user
 
 
@@ -29,6 +31,10 @@ def main():
     import_parser.add_argument("--account", required=True)
     import_parser.add_argument("--file", required=True)
 
+    # Recalculate positions
+    recalc_parser = subparsers.add_parser("recalculate-positions")
+    recalc_parser.add_argument("--email", required=True)
+
     args = parser.parse_args()
 
     if args.command == "create-user":
@@ -40,10 +46,14 @@ def main():
     elif args.command == "import":
         if args.broker.lower() == "schwab" and args.format.lower() == "lot_details":
             transactions = import_schwab_lot_details(args.file, args.email, args.account)
-            for txn in transactions:
-                print(txn)
+            print(len(transactions), "transactions imported.")
+            sys.exit(0)  # Exit with success code
         else:
             print("Unsupported broker or format combination.")
+
+    elif args.command == "recalculate-positions":
+        recalculate_positions(args.email)
+
     else:
         parser.print_help()
 
