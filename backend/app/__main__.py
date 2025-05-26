@@ -4,6 +4,7 @@ import sys
 from app.importers.schwab_lot_importer import import_schwab_lot_details
 from app.services.account_service import create_account
 from app.services.position_service import recalculate_positions
+from app.services.price_service import fetch_and_store_prices
 from app.services.user_service import create_user
 
 
@@ -35,6 +36,10 @@ def main():
     recalc_parser = subparsers.add_parser("recalculate-positions")
     recalc_parser.add_argument("--email", required=True)
 
+    # Fetch latest prices
+    fetch_prices_parser = subparsers.add_parser("fetch-prices",
+                                                help="Fetch current prices for all distinct symbols in positions.")
+
     args = parser.parse_args()
 
     if args.command == "create-user":
@@ -53,7 +58,8 @@ def main():
 
     elif args.command == "recalculate-positions":
         recalculate_positions(args.email)
-
+    elif args.command == "fetch-prices":
+        fetch_and_store_prices()
     else:
         parser.print_help()
 
