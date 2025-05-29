@@ -2,6 +2,7 @@ import argparse
 import sys
 
 from app.importers.schwab_lot_importer import import_schwab_lot_details
+from app.importers.schwab_transactions_importer import import_schwab_transactions
 from app.services.account_service import create_account
 from app.services.position_service import recalculate_positions
 from app.services.price_service import fetch_and_store_prices
@@ -49,10 +50,17 @@ def main():
         create_account(args.email, args.brokerage, args.account_number, args.nickname)
 
     elif args.command == "import":
-        if args.broker.lower() == "schwab" and args.format.lower() == "lot_details":
-            transactions = import_schwab_lot_details(args.file, args.email, args.account)
-            print(len(transactions), "transactions imported.")
-            sys.exit(0)  # Exit with success code
+        if args.broker.lower() == "schwab":
+            if args.format.lower() == "lot_details":
+                transactions = import_schwab_lot_details(args.file, args.email, args.account)
+                print(len(transactions), "transactions imported.")
+                sys.exit(0)  # Exit with success code
+            elif args.format.lower() == "transactions":
+                transactions = import_schwab_transactions(args.file, args.email, args.account)
+                print(len(transactions), "transactions imported from transactions file.")
+                sys.exit(0)
+            else:
+                print("Unsupported format for Schwab. Use 'lot_details' or 'transactions'.")
         else:
             print("Unsupported broker or format combination.")
 
