@@ -37,6 +37,7 @@ def main():
     # Recalculate positions
     recalc_parser = subparsers.add_parser("recalculate-positions")
     recalc_parser.add_argument("--email", required=True)
+    recalc_parser.add_argument("--initial_load", action="store_true")
 
     # Fetch latest prices
     fetch_prices_parser = subparsers.add_parser("fetch-prices",
@@ -70,7 +71,7 @@ def main():
             print("Unsupported broker or format combination.")
 
     elif args.command == "recalculate-positions":
-        recalculate_positions(args.email)
+        recalculate_positions(args.email, args.initial_load)
     elif args.command == "fetch-prices":
         fetch_and_store_prices()
     else:

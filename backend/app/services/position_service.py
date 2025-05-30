@@ -40,7 +40,9 @@ def recalculate_positions(email: str, initial_load: bool = False):
 
         if initial_load:
             symbol_data = aggregate_transactions(txns)
-            save_positions(account.account_id, symbol_data, date.today())
+            end_date = txns[-1].date
+            save_positions(account.account_id, symbol_data, end_date)
+            save_position_snapshot(account.account_id, symbol_data, end_date)
             session.commit()
         else:
             last_snapshot_date = session.query(func.max(PositionSnapshot.as_of_date)).filter_by(
