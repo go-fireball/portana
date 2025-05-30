@@ -64,6 +64,19 @@ poetry run python -m app import \
   --file "./data/Lot-Details.csv"
 ```
 
+
+### Recalculate Positions
+```bash
+poetry run python -m app recalculate-positions \
+  --email venkatachalapatee@gmail.com
+```
+
+
+### Load Prices
+```bash
+poetry run python -m app fetch-prices
+```
+
 ---
 
 ## 📁 Project Structure

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, String, Numeric, Date, ForeignKey, Enum as SqlEnum
+from sqlalchemy import Column, String, Numeric, Date, ForeignKey, Enum as SqlEnum, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db import Base
@@ -17,6 +17,10 @@ class Position(Base):
     avg_cost = Column(Numeric, nullable=True)  # updated on each new buy/sell
     last_updated = Column(Date, nullable=False)  # when this snapshot was last recalculated
     action = Column(SqlEnum(TransactionType, native_enum=False), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("account_id", "symbol", name="uix_account_symbol"),
+    )
 
     def __repr__(self):
         return f"<Position(account_id={self.account_id}, symbol={self.symbol}, quantity={self.quantity}, action={self.action})>"

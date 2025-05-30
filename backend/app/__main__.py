@@ -1,6 +1,7 @@
 import argparse
 import sys
 
+from app.importers.fidelity_positions_importer import import_fidelity_positions
 from app.importers.schwab_lot_importer import import_schwab_lot_details
 from app.importers.schwab_transactions_importer import import_schwab_transactions
 from app.services.account_service import create_account
@@ -50,7 +51,11 @@ def main():
         create_account(args.email, args.brokerage, args.account_number, args.nickname)
 
     elif args.command == "import":
-        if args.broker.lower() == "schwab":
+        if args.broker.lower() == "fidelity":
+            if args.format.lower() == "positions":
+                transactions = import_fidelity_positions(args.file, args.email, args.account)
+                print(len(transactions), "transactions imported.")
+        elif args.broker.lower() == "schwab":
             if args.format.lower() == "lot_details":
                 transactions = import_schwab_lot_details(args.file, args.email, args.account)
                 print(len(transactions), "transactions imported.")
