@@ -40,7 +40,7 @@ def recalculate_positions(email: str, initial_load: bool = False):
             continue
 
         if initial_load:
-            symbol_data = aggregate_transactions(txns)
+            symbol_data = aggregate_transactions(txns, track_cash=False)
             end_date = txns[-1].date
             save_positions(account.account_id, symbol_data, dateutil.utils.today().date())
             save_position_snapshot(account.account_id, symbol_data, dateutil.utils.today().date())
@@ -55,7 +55,7 @@ def recalculate_positions(email: str, initial_load: bool = False):
 
             # Start by aggregating until start_date
             prev_txns: list[Type[Transaction]] = [txn for txn in txns if txn.date < start_date]
-            symbol_data = aggregate_transactions(prev_txns)
+            symbol_data = aggregate_transactions(prev_txns, track_cash=True)
             previous_day_data = deepcopy(symbol_data)
 
             current_date = start_date
@@ -72,12 +72,12 @@ def recalculate_positions(email: str, initial_load: bool = False):
     print(f"✅ Recalculated positions and snapshots for user: {email}")
 
 
-def aggregate_transactions(txns: list[Type[Transaction]]):
+def aggregate_transactions(txns: list[Type[Transaction]], track_cash: bool = True):
     symbol_data = defaultdict(lambda: {"qty": Decimal(0), "total_cost": Decimal(0), "first_action": None})
-    return update_with_day_transactions(symbol_data, txns)
+    return update_with_day_transactions(symbol_data, txns, track_cash=track_cash)
 
 
-def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]]):
+def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]], track_cash: bool = True):
     symbol_data = deepcopy(symbol_data)  # don't mutate caller’s dict
 
     for txn in txns:
@@ -85,6 +85,7 @@ def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]]):
         qty = Decimal(str(txn.quantity))
         price = Decimal(str(txn.price)) if txn.price else Decimal(0)
         action = txn.action.lower()
+        amount = qty * price
 
         if symbol_data[symbol]["first_action"] is None:
             if txn.instrument_type == "option" and action in ["buy", "buy_to_open", "sell_to_open"]:
@@ -93,17 +94,28 @@ def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]]):
                 symbol_data[symbol]["first_action"] = TransactionType.BUY.value
 
         if action in ["buy", "buy_to_open"]:
-            symbol_data[symbol]["total_cost"] += qty * price
+            symbol_data[symbol]["total_cost"] += amount
             symbol_data[symbol]["qty"] += qty
+            if track_cash:
+                symbol_data["CASH"]["qty"] -= amount
         elif action in ["sell", "sell_to_close"]:
             symbol_data[symbol]["qty"] -= qty
-            symbol_data[symbol]["total_cost"] -= qty * price
+            symbol_data[symbol]["total_cost"] -= amount
+            if track_cash:
+                symbol_data["CASH"]["qty"] += amount
         elif action == "sell_to_open":
             symbol_data[symbol]["qty"] += qty
-            symbol_data[symbol]["total_cost"] -= qty * price
+            symbol_data[symbol]["total_cost"] += amount
+            if track_cash:
+                symbol_data["CASH"]["qty"] += amount
         elif action == "buy_to_close":
             symbol_data[symbol]["qty"] -= qty
-            symbol_data[symbol]["total_cost"] += qty * price
+            symbol_data[symbol]["total_cost"] += amount
+            if track_cash:
+                symbol_data["CASH"]["qty"] -= amount
+
+    if track_cash and ("CASH" not in symbol_data or symbol_data["CASH"]["first_action"] is None):
+        symbol_data["CASH"]["first_action"] = TransactionType.BUY.value
 
     return symbol_data
 
