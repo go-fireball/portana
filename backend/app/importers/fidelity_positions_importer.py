@@ -62,7 +62,7 @@ def import_fidelity_positions(file_path: str, email: str, account_number: str) -
 
             avg_cost_str = str(row.get("Average Cost Basis", "")).replace("$", "").replace(",", "").strip()
             price = float(avg_cost_str) if avg_cost_str not in ("", "nan", "--") else None
-
+            price = round(price, 5)
             date_today = date.today()
             instrument_type = "stock"
             option_details = None
@@ -70,7 +70,6 @@ def import_fidelity_positions(file_path: str, email: str, account_number: str) -
 
             if raw_symbol.startswith("-") or raw_symbol.startswith("+"):
                 parsed = parse_option_symbol(raw_symbol)
-                symbol = parsed["formatted_symbol"]
                 option_details = {
                     "base_symbol": parsed["base_symbol"],
                     "expiry": parsed["expiry"].isoformat(),
@@ -79,8 +78,9 @@ def import_fidelity_positions(file_path: str, email: str, account_number: str) -
                 }
                 # action = TransactionType.SELL_TO_OPEN if raw_symbol.startswith("-") else TransactionType.BUY_TO_OPEN
                 instrument_type = "option"
+                current_symbol = f"{option_details['base_symbol']}_{option_details['expiry']}_{option_details['strike']}_{option_details['type'].upper()}"
             else:
-                symbol = raw_symbol
+                current_symbol = raw_symbol
 
             if instrument_type == "option":
                 action = (
@@ -91,11 +91,11 @@ def import_fidelity_positions(file_path: str, email: str, account_number: str) -
 
             txn = Transaction(
                 account_id=account.account_id,
-                symbol=symbol,
+                symbol=current_symbol,
                 action=action,
                 instrument_type=instrument_type,
-                quantity=abs(quantity),
-                price=Decimal(price) if price is not None else None,
+                quantity=abs(quantity) if action != TransactionType.SELL_TO_OPEN.value else -abs(quantity),
+                price=price,
                 date=date_today,
                 source="imported_position",
                 option_details=option_details

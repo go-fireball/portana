@@ -3,6 +3,7 @@ from copy import deepcopy
 from datetime import timedelta
 from decimal import Decimal
 
+import dateutil.utils
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
@@ -40,8 +41,8 @@ def recalculate_positions(email: str, initial_load: bool = False):
         if initial_load:
             symbol_data = aggregate_transactions(txns)
             end_date = txns[-1].date
-            save_positions(account.account_id, symbol_data, end_date)
-            save_position_snapshot(account.account_id, symbol_data, end_date)
+            save_positions(account.account_id, symbol_data, dateutil.utils.today().date())
+            save_position_snapshot(account.account_id, symbol_data, dateutil.utils.today().date())
             session.commit()
         else:
             last_snapshot_date = session.query(func.max(PositionSnapshot.as_of_date)).filter_by(
