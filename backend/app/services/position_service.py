@@ -1,9 +1,8 @@
 from collections import defaultdict
-from datetime import date, timedelta
-from decimal import Decimal
 from copy import deepcopy
+from datetime import timedelta
+from decimal import Decimal
 
-from sqlalchemy import delete
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
