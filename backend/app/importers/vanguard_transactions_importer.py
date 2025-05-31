@@ -46,6 +46,7 @@ def import_vanguard_transactions(file_path: str, email: str, account_number: str
             quantity = float(str(row["Shares"]).replace(",", "").strip())
             price_str = str(row["Share Price"]).replace("$", "").replace(",", "").strip()
             price = float(price_str) if price_str not in ("", "--", "nan") else None
+            price = round(price,5)
 
             instrument_type = "stock"
 
