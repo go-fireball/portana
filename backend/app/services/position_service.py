@@ -2,13 +2,14 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import timedelta
 from decimal import Decimal
+from typing import Type
 
 import dateutil.utils
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
 from app.db import SessionLocal
-from app.models import TransactionType
+from app.models import TransactionType, Transaction
 from app.models.account import Account
 from app.models.position import Position
 from app.models.position_snapshots import PositionSnapshot
@@ -53,7 +54,7 @@ def recalculate_positions(email: str, initial_load: bool = False):
             end_date = txns[-1].date
 
             # Start by aggregating until start_date
-            prev_txns = [txn for txn in txns if txn.date < start_date]
+            prev_txns: list[Type[Transaction]] = [txn for txn in txns if txn.date < start_date]
             symbol_data = aggregate_transactions(prev_txns)
             previous_day_data = deepcopy(symbol_data)
 
@@ -71,18 +72,18 @@ def recalculate_positions(email: str, initial_load: bool = False):
     print(f"✅ Recalculated positions and snapshots for user: {email}")
 
 
-def aggregate_transactions(txns):
+def aggregate_transactions(txns: list[Type[Transaction]]):
     symbol_data = defaultdict(lambda: {"qty": Decimal(0), "total_cost": Decimal(0), "first_action": None})
     return update_with_day_transactions(symbol_data, txns)
 
 
-def update_with_day_transactions(symbol_data, txns):
+def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]]):
     symbol_data = deepcopy(symbol_data)  # don't mutate caller’s dict
 
     for txn in txns:
         symbol = txn.symbol
-        qty = Decimal(txn.quantity)
-        price = Decimal(txn.price) if txn.price else Decimal(0)
+        qty = Decimal(str(txn.quantity))
+        price = Decimal(str(txn.price)) if txn.price else Decimal(0)
         action = txn.action.lower()
 
         if symbol_data[symbol]["first_action"] is None:

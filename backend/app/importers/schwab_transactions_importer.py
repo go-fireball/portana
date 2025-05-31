@@ -39,10 +39,26 @@ def import_schwab_transactions(file_path: str, email: str, account_number: str) 
             action = TransactionType(action_raw)
 
             # Clean symbol
-            raw_symbol = str(row["Symbol"]).strip()
-            if raw_symbol in ("", "nan"):
-                print(f"⚠️ Skipping transaction with missing symbol on {row['Date']}")
-                continue
+            raw_symbol = str(row.get("Symbol", "")).strip()
+            is_cash_like = action in {
+                TransactionType.MARGIN_INTEREST,
+                TransactionType.CREDIT_INTEREST,
+                TransactionType.CASH_DIVIDEND,
+                TransactionType.QUALIFIED_DIVIDEND,
+                TransactionType.DIVIDEND,
+                TransactionType.MONEYLINK_TRANSFER,
+                TransactionType.JOURNAL,
+            }
+
+            if raw_symbol in ("", "nan") and is_cash_like:
+                raw_symbol = "CASH"
+            elif is_cash_like:
+                raw_symbol = "CASH"
+            else:
+                if raw_symbol in ("", "nan"):
+                    print(f"⚠️ Skipping transaction with missing symbol on {row['Date']}")
+                    continue
+
             parts = raw_symbol.split()
             option_meta = None
             if len(parts) >= 4:
@@ -70,18 +86,44 @@ def import_schwab_transactions(file_path: str, email: str, account_number: str) 
             price = float(price_str) if price_str not in ("", "--", "nan") else None
 
             # Determine instrument type
-            instrument_type = "option" if "call" in symbol.lower() or "put" in symbol.lower() else "stock"
+            instrument_type = "cash" if symbol == "CASH" else (
+                "option" if "call" in symbol.lower() or "put" in symbol.lower() else "stock"
+            )
+            # Parse amount (for cash inflow/outflow logic)
+            amount_str = str(row.get("Amount", "")).replace("$", "").replace(",", "").strip()
+            amount = float(amount_str) if amount_str not in ("", "--", "nan") else 0
+
+            # For cash, override action based on inflow/outflow
+            if symbol == "CASH":
+                inferred_action = TransactionType.BUY if amount > 0 else TransactionType.SELL
+                action = inferred_action
+                price = 1.0
+                quantity = amount
+            journal_details = {
+                "original_action": row["Action"],
+                "amount": amount,
+                "description": str(row.get("Description", "")).strip(),
+            } if symbol == "CASH" else None,
+
+            # Determine quantity direction for SELL_TO_OPEN
+            if action == TransactionType.SELL_TO_OPEN:
+                quantity = -abs(quantity)
+            elif action in {TransactionType.SELL, TransactionType.SELL_SHORT, TransactionType.SELL_TO_CLOSE}:
+                quantity = -abs(quantity)
+            else:
+                quantity = abs(quantity)
 
             txn = Transaction(
                 account_id=account.account_id,
                 symbol=symbol,
                 action=action,
                 instrument_type=instrument_type,
-                quantity=abs(quantity),
+                quantity=quantity,
                 price=price,
                 date=date,
                 option_details=option_meta,
-                source="imported_transaction"
+                source="imported_transaction",
+                journal_details=journal_details
             )
 
             session.add(txn)

@@ -5,7 +5,7 @@ import pandas as pd
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
-from app.models import TransactionType
+from app.models import TransactionType, Transaction
 from app.models.account import Account
 from app.models.transaction import Transaction
 from app.models.user import User
@@ -13,7 +13,7 @@ from app.models.user import User
 session: Session = SessionLocal()
 
 
-def import_schwab_lot_details(file_path: str, email: str, account_number: str) -> List[Dict]:
+def import_schwab_lot_details(file_path: str, email: str, account_number: str) -> list[Transaction]:
     df = pd.read_csv(file_path, header=None)
     transactions = []
     current_symbol = None
@@ -91,7 +91,8 @@ def import_schwab_lot_details(file_path: str, email: str, account_number: str) -
                 account_id=account.account_id,
                 symbol=current_symbol,
                 action=action,
-                quantity=abs(quantity) if action != TransactionType.SELL_TO_OPEN.value else -abs(quantity), # wouldn't quantity=quantity would solve this??
+                quantity=abs(quantity) if action != TransactionType.SELL_TO_OPEN.value else -abs(quantity),
+                # wouldn't quantity=quantity would solve this??
                 price=cost_per_share,
                 date=open_date,
                 source="imported_lot",

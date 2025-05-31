@@ -60,7 +60,9 @@ def fetch_and_store_prices():
                 print(f"[{symbol}] Price already stored for {today}, skipping.")
                 continue
 
-            if "_" in symbol:
+            if symbol == "CASH":
+                price = 1.0
+            elif "_" in symbol:
                 underlying, expiry_str, _, _ = parse_option_symbol(symbol)
                 expiry_date = datetime.strptime(expiry_str, "%Y-%m-%d").date()
                 if expiry_date < today:
