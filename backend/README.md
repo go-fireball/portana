@@ -68,7 +68,7 @@ poetry run python -m app import \
 ### Recalculate Positions
 ```bash
 poetry run python -m app recalculate-positions \
-  --email venkatachalapatee@gmail.com
+  --email venkat@gmail.com
 ```
 
 
