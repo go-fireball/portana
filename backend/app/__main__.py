@@ -2,6 +2,7 @@ import argparse
 import sys
 
 from app.importers.fidelity_positions_importer import import_fidelity_positions
+from app.importers.fidelity_transactions_importer import import_fidelity_transactions
 from app.importers.schwab_lot_importer import import_schwab_lot_details
 from app.importers.schwab_transactions_importer import import_schwab_transactions
 from app.importers.vanguard_transactions_importer import import_vanguard_transactions
@@ -60,6 +61,9 @@ def main():
         if args.broker.lower() == "fidelity":
             if args.format.lower() == "positions":
                 transactions = import_fidelity_positions(args.file, args.email, args.account)
+                print(len(transactions), "transactions imported.")
+            elif args.format.lower() == "transactions":
+                transactions = import_fidelity_transactions(args.file, args.email, args.account)
                 print(len(transactions), "transactions imported.")
         elif args.broker.lower() == "schwab":
             if args.format.lower() == "lot_details":
