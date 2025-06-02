@@ -87,6 +87,17 @@ def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]], tra
         action = txn.action.lower()
         amount = qty * price
 
+        # Special case for direct CASH transactions (deposit/withdrawal)
+        if symbol == "CASH":
+            if action == "buy":
+                symbol_data["CASH"]["qty"] += qty  # deposit
+            elif action == "sell":
+                symbol_data["CASH"]["qty"] -= qty  # withdrawal
+                symbol_data[symbol]["total_cost"] -= amount
+            if symbol_data["CASH"]["first_action"] is None:
+                symbol_data["CASH"]["first_action"] = TransactionType.BUY.value
+            continue  # ✅ skip further processing
+
         if symbol_data[symbol]["first_action"] is None:
             if txn.instrument_type == "option" and action in ["buy", "buy_to_open", "sell_to_open"]:
                 symbol_data[symbol]["first_action"] = action
@@ -151,7 +162,12 @@ def save_position_snapshot(account_id, symbol_data, snapshot_date):
         quantity = round(data["qty"], 5)
         total_cost = data["total_cost"]
         first_action = data["first_action"] or TransactionType.BUY.value
-        avg_cost = round(total_cost / quantity, 5) if quantity else None
+
+        # ✅ Special case for CASH
+        if symbol == "CASH":
+            avg_cost = Decimal("1.0")
+        else:
+            avg_cost = round(total_cost / quantity, 5) if quantity else None
 
         if quantity == 0:
             continue
