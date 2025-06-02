@@ -58,6 +58,16 @@ poetry run python -m app create-account \
   --nickname "Rollover IRA"
 ```
 
+### Import Fidelity Positions
+```bash
+poetry run python -m app import \
+  --broker fidelity \
+  --format positions \
+  --email venkat@example.com \
+  --account 123456 \
+  --file "./data/Fidelity-Positions.csv"
+```
+
 ### Import Schwab Lot Details
 ```bash
 poetry run python -m app import \
@@ -68,18 +78,38 @@ poetry run python -m app import \
   --file "./data/Lot-Details.csv"
 ```
 
+### Import Schwab Transactions
+```bash
+poetry run python -m app import \
+  --broker schwab \
+  --format transactions \
+  --email venkat@example.com \
+  --account 123456 \
+  --file "./data/Schwab-Transactions.csv"
+```
+
+### Import Vanguard Transactions
+```bash
+poetry run python -m app import \
+  --broker vanguard \
+  --format transactions \
+  --email venkat@example.com \
+  --account 123456 \
+  --file "./data/Vanguard-Transactions.csv"
+```
 
 ### Recalculate Positions
-```bash
-poetry run python -m app recalculate-positions \
-  --email venkat@gmail.com
-```
 
 ```bash
 poetry run python -m app recalculate-positions \
   --email venkat@example.com \
   --initial_load
 
+```
+
+```bash
+poetry run python -m app recalculate-positions \
+  --email venkat@gmail.com
 ```
 
 ### Load Prices
