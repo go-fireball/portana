@@ -13,7 +13,9 @@ poetry install
 ```
 
 ### 2. Create `.env` or configure `alembic.ini` with DB credentials
-Make sure your PostgreSQL DB is running and accessible at:
+
+Make sure your PostgresSQL DB is running and accessible at:
+
 ```
 postgresql://portana:secret@localhost:5432/portana
 ```
@@ -37,7 +39,9 @@ poetry run alembic upgrade head
 ---
 
 ## 🧪 Example CLI Usage
-
+```bash
+poetry run python -m app <command> [options]
+```
 ### Create a new user
 ```bash
 poetry run python -m app create-user \
@@ -71,6 +75,12 @@ poetry run python -m app recalculate-positions \
   --email venkat@gmail.com
 ```
 
+```bash
+poetry run python -m app recalculate-positions \
+  --email venkat@example.com \
+  --initial_load
+
+```
 
 ### Load Prices
 ```bash
