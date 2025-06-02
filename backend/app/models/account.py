@@ -1,7 +1,6 @@
 import uuid
-from datetime import datetime
 
-from sqlalchemy import Column, String, ForeignKey, DateTime
+from sqlalchemy import Column, String, ForeignKey, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db import Base
@@ -15,4 +14,5 @@ class Account(Base):
     brokerage = Column(String, nullable=False)
     account_number = Column(String, nullable=True)
     nickname = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=func.now())
+

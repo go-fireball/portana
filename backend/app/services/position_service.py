@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
 from app.db import SessionLocal
-from app.models import TransactionType, Transaction
+from app.models import TransactionType
 from app.models.account import Account
 from app.models.position import Position
 from app.models.position_snapshots import PositionSnapshot
