@@ -103,16 +103,11 @@ def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]], tra
             else:
                 symbol_data[symbol]["first_action"] = TransactionType.BUY.value
 
-        if action in ["buy", "buy_to_open"]:
+        if action in ["buy", "buy_to_open", "sell", "sell_to_close"]:
             symbol_data[symbol]["total_cost"] += amount
             symbol_data[symbol]["qty"] += qty
             if track_cash:
                 symbol_data["CASH"]["qty"] -= amount
-        elif action in ["sell", "sell_to_close"]:
-            symbol_data[symbol]["qty"] += qty
-            symbol_data[symbol]["total_cost"] += amount
-            if track_cash:
-                symbol_data["CASH"]["qty"] += amount
         elif action == "sell_to_open":
             symbol_data[symbol]["qty"] += qty
             symbol_data[symbol]["total_cost"] += amount
