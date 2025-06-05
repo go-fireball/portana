@@ -86,13 +86,13 @@ def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]], tra
         price = Decimal(str(txn.price)) if txn.price else Decimal(0)
         action = txn.action.lower()
         amount = qty * price
+        if txn.instrument_type == "option":
+            amount *= 100
 
         # Special case for direct CASH transactions (deposit/withdrawal)
         if symbol == "CASH":
-            if action == "buy":
-                symbol_data["CASH"]["qty"] += qty  # deposit
-            elif action == "sell":
-                symbol_data["CASH"]["qty"] -= qty  # withdrawal
+            symbol_data["CASH"]["qty"] += qty  # deposit / withdrawal
+
             if symbol_data["CASH"]["first_action"] is None:
                 symbol_data["CASH"]["first_action"] = TransactionType.BUY.value
             continue  # ✅ skip further processing
