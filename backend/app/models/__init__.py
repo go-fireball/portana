@@ -5,3 +5,4 @@ from .transaction import Transaction
 from .transaction_type import TransactionType
 from .user import User
 from .price import Price
+from .portfolio_metrics_snapshot import PortfolioMetricsSnapshot

@@ -7,7 +7,7 @@ class PortfolioMetricsSnapshot(Base):
     __tablename__ = "portfolio_metrics_snapshot"
 
     snapshot_date = Column(Date, primary_key=True)
-    account_id = Column(UUID, ForeignKey("account.account_id"), primary_key=True)
+    account_id = Column(UUID, ForeignKey("accounts.account_id"), primary_key=True)
 
     portfolio_value = Column(Numeric)
     benchmark_value = Column(Numeric)
