@@ -92,7 +92,6 @@ def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]], tra
         # Special case for direct CASH transactions (deposit/withdrawal)
         if symbol == "CASH":
             symbol_data["CASH"]["qty"] += qty  # deposit / withdrawal
-
             if symbol_data["CASH"]["first_action"] is None:
                 symbol_data["CASH"]["first_action"] = TransactionType.BUY.value
             continue  # ✅ skip further processing
@@ -103,19 +102,9 @@ def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]], tra
             else:
                 symbol_data[symbol]["first_action"] = TransactionType.BUY.value
 
-        if action in ["buy", "buy_to_open", "sell", "sell_to_close"]:
+        if action in ["buy", "sell", "buy_to_open", "sell_to_close", "sell_to_open", "buy_to_close"]:
             symbol_data[symbol]["total_cost"] += amount
             symbol_data[symbol]["qty"] += qty
-            if track_cash:
-                symbol_data["CASH"]["qty"] -= amount
-        elif action == "sell_to_open":
-            symbol_data[symbol]["qty"] += qty
-            symbol_data[symbol]["total_cost"] += amount
-            if track_cash:
-                symbol_data["CASH"]["qty"] += amount
-        elif action == "buy_to_close":
-            symbol_data[symbol]["qty"] -= qty
-            symbol_data[symbol]["total_cost"] += amount
             if track_cash:
                 symbol_data["CASH"]["qty"] -= amount
 
