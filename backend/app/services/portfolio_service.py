@@ -37,8 +37,8 @@ def get_portfolio_series(account_id: str, from_date: date) -> pd.Series:
 def get_cash_flows(account_id: UUID, from_date: date) -> pd.Series:
     result = (
         session.query(Transaction.date, Transaction.action, Transaction.quantity)
-        .filter(Transaction.account_id == account_id)
-        .filter(Transaction.symbol == "CASH")
+        .filter_by(account_id=account_id)
+        .filter_by(symbol="CASH")
         .filter(Transaction.date >= from_date)
         .filter(Transaction.action.in_([TransactionType.BUY, TransactionType.SELL]))
         .order_by(Transaction.date)
