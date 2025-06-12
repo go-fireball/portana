@@ -66,29 +66,35 @@ def compute_max_drawdown(portfolio_series: pd.Series) -> float:
     return drawdown.min()
 
 
-def compute_sharpe_ratio(daily_returns: pd.Series, risk_free_rate=0.05) -> float:
-    daily_rf = risk_free_rate / 252  # Convert annual to daily
+def compute_sharpe_ratio_series(daily_returns: pd.Series, risk_free_rate=0.05, window: int = 30) -> pd.Series:
+    daily_rf = risk_free_rate / 252
     excess_returns = daily_returns - daily_rf
-    return excess_returns.mean() / excess_returns.std()
+
+    # Rolling Sharpe ratio: mean / std over window
+    rolling_mean = excess_returns.rolling(window=window).mean()
+    rolling_std = excess_returns.rolling(window=window).std()
+
+    sharpe_series = rolling_mean / rolling_std
+    return sharpe_series.dropna()
 
 
-def compute_twr(portfolio_series: pd.Series, cash_flows: pd.Series) -> float:
-    dates = portfolio_series.index
+def compute_twr_series(portfolio_series: pd.Series, cash_flows: pd.Series) -> pd.Series:
     twr = 1.0
     prev_value = None
+    twr_series = {}
 
-    for date in dates:
+    for date in portfolio_series.index:
         value = portfolio_series[date]
         flow = cash_flows.get(date, 0.0)
 
         if prev_value is not None:
-            # Calculate sub-period return
             r = (value - flow - prev_value) / prev_value
             twr *= (1 + r)
 
         prev_value = value
+        twr_series[date] = twr - 1  # cumulative TWR to this date
 
-    return twr - 1
+    return pd.Series(twr_series)
 
 
 def compute_cagr(portfolio_series: pd.Series) -> float:
@@ -103,7 +109,7 @@ def to_float(x):
         return round(float(x), 5)
     if isinstance(x, np.generic):  # includes np.float64, np.int64, etc.
         return round(x.item(), 5)
-    return round(x,5)
+    return x
 
 
 def update_portfolio_metrics(email: str):
@@ -124,8 +130,8 @@ def update_portfolio_metrics(email: str):
 
         cash_flows = get_cash_flows(account.account_id, start_date)
         daily_returns = compute_daily_returns(portfolio_series)
-        twr = compute_twr(portfolio_series, cash_flows)
-        sharpe = compute_sharpe_ratio(daily_returns)
+        twr = compute_twr_series(portfolio_series, cash_flows)
+        sharpe = compute_sharpe_ratio_series(daily_returns)
         drawdown = compute_max_drawdown(portfolio_series)
 
         for i in range(1, len(portfolio_series)):
@@ -143,18 +149,21 @@ def update_portfolio_metrics(email: str):
             rolling_7d = portfolio_series.iloc[max(0, i - 6):i + 1].pct_change().add(1).prod() - 1
             rolling_30d = portfolio_series.iloc[max(0, i - 29):i + 1].pct_change().add(1).prod() - 1
 
+            twr_value = to_float(twr.get(snapshot_date))
+            sharpe_value = to_float(sharpe.get(snapshot_date))
+
             session.merge(PortfolioMetricsSnapshot(
                 snapshot_date=snapshot_date,
                 account_id=account.account_id,
                 portfolio_value=to_float(value),
                 benchmark_value=None,  # Expected type 'Decimal | float', got 'None' instead
                 portfolio_daily_return=to_float(daily_returns.get(snapshot_date)),
-                benchmark_daily_return=None, # Expected type 'Decimal | float', got 'None' instead
+                benchmark_daily_return=None,  # Expected type 'Decimal | float', got 'None' instead
                 cash_balance=to_float(cash),
-                twr_to_date=to_float(twr),
+                twr_to_date=to_float(twr_value),
                 rolling_return_7d=to_float(rolling_7d),
                 rolling_return_30d=to_float(rolling_30d),
-                sharpe_to_date=to_float(sharpe),
+                sharpe_to_date=to_float(sharpe_value),
                 drawdown_to_date=to_float(drawdown),
             ))
 
@@ -164,5 +173,3 @@ def update_portfolio_metrics(email: str):
 
 if __name__ == "__main__":
     update_portfolio_metrics('venkatachalapatee@gmail.com')
-
-
