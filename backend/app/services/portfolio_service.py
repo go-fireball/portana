@@ -60,10 +60,10 @@ def compute_daily_returns(portfolio_series: pd.Series) -> pd.Series:
     return portfolio_series.pct_change().dropna()
 
 
-def compute_max_drawdown(portfolio_series: pd.Series) -> float:
+def compute_drawdown_series(portfolio_series: pd.Series) -> pd.Series:
     cumulative_max = portfolio_series.cummax()
-    drawdown = (portfolio_series - cumulative_max) / cumulative_max
-    return drawdown.min()
+    drawdown_series = (portfolio_series - cumulative_max) / cumulative_max
+    return drawdown_series
 
 
 def compute_sharpe_ratio_series(daily_returns: pd.Series, risk_free_rate=0.05, window: int = 30) -> pd.Series:
@@ -132,7 +132,7 @@ def update_portfolio_metrics(email: str):
         daily_returns = compute_daily_returns(portfolio_series)
         twr = compute_twr_series(portfolio_series, cash_flows)
         sharpe = compute_sharpe_ratio_series(daily_returns)
-        drawdown = compute_max_drawdown(portfolio_series)
+        drawdown = compute_drawdown_series(portfolio_series)
 
         for i in range(1, len(portfolio_series)):
             snapshot_date = portfolio_series.index[i]
@@ -151,6 +151,7 @@ def update_portfolio_metrics(email: str):
 
             twr_value = to_float(twr.get(snapshot_date))
             sharpe_value = to_float(sharpe.get(snapshot_date))
+            drawdown_value = to_float(drawdown.get(snapshot_date))
 
             session.merge(PortfolioMetricsSnapshot(
                 snapshot_date=snapshot_date,
@@ -164,7 +165,7 @@ def update_portfolio_metrics(email: str):
                 rolling_return_7d=to_float(rolling_7d),
                 rolling_return_30d=to_float(rolling_30d),
                 sharpe_to_date=to_float(sharpe_value),
-                drawdown_to_date=to_float(drawdown),
+                drawdown_to_date=to_float(drawdown_value),
             ))
 
         session.commit()
