@@ -2,7 +2,7 @@
 <template>
   <v-app>
     <NavBar />
-    <v-main min-height="850px">
+    <v-main>
       <NuxtPage />
     </v-main>
     <Footer/>

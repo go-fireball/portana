@@ -2,16 +2,15 @@
 import type {AxiosInstance} from 'axios'
 import axios from "axios";
 
-
 let apiClient: AxiosInstance | null = null
 
 export const useApiClient = (): AxiosInstance => {
     if (apiClient) return apiClient
 
     const config = useRuntimeConfig()
-
+    const apiUrl = config.public.apiUrl as string
     apiClient = axios.create({
-        baseURL: config.public.baseUrl,
+        baseURL: apiUrl,
         timeout: 8000
     })
 
