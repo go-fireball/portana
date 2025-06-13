@@ -1,6 +1,8 @@
 import type {User} from "~/types/user";
 import {useApiClient} from "~/composables/useApiClient";
-import type {PortfolioPoint, PositionSummary} from "~/types/positionSummary";
+import type {PositionSummary} from "~/types/positionSummary";
+import type {PortfolioPoint} from "~/types/portfolioPoint";
+import type {RollingReturnPoint} from "~/types/rollingReturnPoint";
 
 type UsersResponse = {
     users: User[]
@@ -11,6 +13,10 @@ type PositionSummaryResponse = {
 
 type PortfolioSummaryResponse = {
     portfolio: PortfolioPoint[];
+}
+
+type RollingReturnsResponse = {
+    returns: RollingReturnPoint[];
 }
 
 const getAllUsers = async (): Promise<User[]> => {
@@ -26,6 +32,13 @@ const getPositionSummaries = async (userId: string): Promise<PositionSummary[]> 
     return response.data.positions
 }
 
+const getRollingReturns = async (userId: string): Promise<RollingReturnPoint[]> => {
+    const apiClient = useApiClient();
+    const response = await apiClient.get<RollingReturnsResponse>(
+        `/api/users/${userId}/portfolio/rolling-returns`)
+    return response.data.returns
+}
+
 const getPortfolioSummaries = async (userId: string): Promise<PortfolioPoint[]> => {
     const apiClient = useApiClient();
     const response = await apiClient.get<PortfolioSummaryResponse>(
@@ -36,5 +49,6 @@ const getPortfolioSummaries = async (userId: string): Promise<PortfolioPoint[]> 
 export default {
     getAllUsers,
     getPositionSummaries,
-    getPortfolioSummaries
+    getPortfolioSummaries,
+    getRollingReturns
 }

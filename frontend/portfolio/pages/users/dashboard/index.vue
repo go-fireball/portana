@@ -18,9 +18,13 @@
       <!-- 📊 Portfolio Line Chart -->
       <client-only>
         <v-card class="mt-8 pa-4">
-
           <PortfolioSummaryChart />
+        </v-card>
+      </client-only>
 
+      <client-only>
+        <v-card class="mt-8 pa-4">
+          <PortfolioRollingReturnChart />
         </v-card>
       </client-only>
     </v-container>
@@ -29,7 +33,7 @@
 
 <script setup lang="ts">
 import {ref, onMounted} from 'vue'
-import type {PortfolioPoint, PositionSummary} from '~/types/positionSummary'
+import type {PositionSummary} from '~/types/positionSummary'
 import userService from "~/services/userService";
 import PortfolioSummaryChart from "~/components/PortfolioSummaryChart.vue";
 

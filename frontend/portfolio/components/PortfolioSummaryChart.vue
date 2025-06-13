@@ -16,8 +16,8 @@
 
 // 👇 Build ApexChart options and series
 import {ref} from "vue";
-import type {PortfolioPoint} from "~/types/positionSummary";
 import userService from "~/services/userService";
+import type {PortfolioPoint} from "~/types/portfolioPoint";
 
 const chartOptions = ref({
   chart: {
