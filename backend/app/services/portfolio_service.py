@@ -24,6 +24,7 @@ def get_portfolio_series(account_id: str, from_date: date) -> pd.Series:
         func.sum(PositionSnapshot.total_value)
     ).filter(
         PositionSnapshot.account_id == account_id,
+        PositionSnapshot.symbol != "CASH",  # Exclude cash
         PositionSnapshot.as_of_date > from_date
     ).group_by(
         PositionSnapshot.as_of_date
@@ -35,29 +36,52 @@ def get_portfolio_series(account_id: str, from_date: date) -> pd.Series:
 
 
 def get_cash_flows(account_id: UUID, from_date: date) -> pd.Series:
+    """
+    Returns a Pandas Series of net cash flows by date.
+    Includes:
+    - Buys/Sells of stocks/options (cash out/in)
+    - CASH symbol transactions (deposits/withdrawals)
+    """
     result = (
-        session.query(Transaction.date, Transaction.action, Transaction.quantity)
-        .filter_by(account_id=account_id)
-        .filter_by(symbol="CASH")
+        session.query(Transaction.date, Transaction.symbol, Transaction.action,
+                      Transaction.quantity, Transaction.price)
+        .filter(Transaction.account_id == account_id)
         .filter(Transaction.date >= from_date)
-        .filter(Transaction.action.in_([TransactionType.BUY, TransactionType.SELL]))
         .order_by(Transaction.date)
         .all()
     )
 
     cash_flow_map = {}
 
-    for txn_date, action, quantity in result:
-        qty = float(quantity)
-        flow = qty if action == TransactionType.BUY else -qty
-        cash_flow_map.setdefault(txn_date, 0.0)
-        cash_flow_map[txn_date] += flow
+    for txn_date, symbol, action, quantity, price in result:
+        qty = float(quantity or 0)
+        price = float(price or 0)
+        if symbol == "CASH":
+            flow = qty  # Explicit cash transfer
+        else:
+            flow = -qty * price  # Security buy/sell
+
+        if flow != 0:
+            cash_flow_map.setdefault(txn_date, 0.0)
+            cash_flow_map[txn_date] += flow
 
     return pd.Series(cash_flow_map).sort_index()
 
 
-def compute_daily_returns(portfolio_series: pd.Series) -> pd.Series:
-    return portfolio_series.pct_change().dropna()
+def compute_daily_returns(portfolio_series: pd.Series, cash_flows: pd.Series) -> pd.Series:
+    adjusted = {}
+    prev_value = None
+
+    for date in portfolio_series.index:
+        value = portfolio_series[date]
+        flow = cash_flows.get(date, 0.0)
+
+        if prev_value is not None:
+            adjusted[date] = (value - flow) / prev_value - 1
+
+        prev_value = value
+
+    return pd.Series(adjusted)
 
 
 def compute_drawdown_series(portfolio_series: pd.Series) -> pd.Series:
@@ -112,6 +136,31 @@ def to_float(x):
     return x
 
 
+def compute_xirr(cash_flows: list[tuple[date, float]]) -> float:
+    """Compute XIRR using Newton-Raphson method."""
+    if not cash_flows:
+        return 0.0
+
+    dates = [cf[0] for cf in cash_flows]
+    amounts = [cf[1] for cf in cash_flows]
+    days = [(d - dates[0]).days / 365.0 for d in dates]
+
+    def xnpv(rate):
+        return sum(amount / ((1 + rate) ** day) for amount, day in zip(amounts, days))
+
+    def xirr():
+        rate = 0.1
+        for _ in range(100):
+            f_value = xnpv(rate)
+            deriv = sum(-day * amount / ((1 + rate) ** (day + 1)) for amount, day in zip(amounts, days))
+            rate -= f_value / deriv
+            if abs(f_value) < 1e-6:
+                return rate
+        return rate
+
+    return xirr()
+
+
 def update_portfolio_metrics(email: str):
     user = session.query(User).filter_by(email=email).first()
     if not user:
@@ -129,7 +178,7 @@ def update_portfolio_metrics(email: str):
             continue
 
         cash_flows = get_cash_flows(account.account_id, start_date)
-        daily_returns = compute_daily_returns(portfolio_series)
+        daily_returns = compute_daily_returns(portfolio_series, cash_flows)
         twr = compute_twr_series(portfolio_series, cash_flows)
         sharpe = compute_sharpe_ratio_series(daily_returns)
         drawdown = compute_drawdown_series(portfolio_series)
@@ -146,8 +195,8 @@ def update_portfolio_metrics(email: str):
             if cash_row:
                 cash = float(str(cash_row.quantity))
 
-            rolling_7d = portfolio_series.iloc[max(0, i - 6):i + 1].pct_change().add(1).prod() - 1
-            rolling_30d = portfolio_series.iloc[max(0, i - 29):i + 1].pct_change().add(1).prod() - 1
+            rolling_7d = daily_returns.iloc[max(0, i - 6):i].add(1).prod() - 1
+            rolling_30d = daily_returns.iloc[max(0, i - 29):i].add(1).prod() - 1
 
             twr_value = to_float(twr.get(snapshot_date))
             sharpe_value = to_float(sharpe.get(snapshot_date))
