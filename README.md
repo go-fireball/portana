@@ -2,7 +2,7 @@
 
 **Portana is a backend system designed for personal portfolio analysis and transaction tracking. It empowers data-savvy investors and developers to consolidate investment data, track performance using advanced metrics, and gain deeper insights into their financial assets.**
 
-Portana is currently a **backend-only** solution, providing a REST API (built with FastAPI) and Command-Line Interface (CLI) tools. It does not yet include a graphical user interface.
+Portana features a **backend system** for portfolio analysis and a **frontend user interface** built with Nuxt.js. The backend provides a REST API (FastAPI) and CLI tools, while the frontend offers data visualization and user interaction.
 
 ## Overview
 
@@ -23,10 +23,30 @@ Are you managing investments across multiple brokerages? Do you want to go beyon
     *   Sharpe Ratio
     *   Compound Annual Growth Rate (CAGR)
     *   Daily Returns & Drawdown Analysis
+*   **Visual Portfolio Insights:** Interactive charts and a dashboard to visualize portfolio performance, value over time, and rolling returns through the web interface.
 *   **Price Fetching:** Automatically fetches daily market prices for equities and options using Yahoo Finance.
 *   **API Access:** A comprehensive FastAPI backend provides API access to your data and calculations.
 *   **CLI Tools:** For administrative tasks like user/account creation, data import, and recalculating positions/metrics.
 *   **Data Ownership:** Keep your financial data on your own systems.
+
+## User Interface (Frontend)
+
+Portana includes a web-based user interface built with Nuxt.js (using Vue.js and Vuetify) to provide a visual way to interact with your portfolio data.
+
+**Key Frontend Features:**
+
+*   **User Selection:** Allows viewing data for different registered users.
+*   **Portfolio Summary Chart:** Displays the total value of a user's portfolio over time.
+*   **Rolling Return Charts:** Shows 7-day and 30-day rolling returns for each account, providing insights into performance trends.
+*   **Interactive Charts:** Utilizes ApexCharts for dynamic data visualization.
+
+**Running the Frontend:**
+
+For detailed instructions on setting up and running the frontend, please refer to `frontend/portfolio/README.md`. As a quick start:
+1. Navigate to the `frontend/portfolio` directory.
+2. Install dependencies (e.g., `npm install`).
+3. Start the development server (e.g., `npm run dev`).
+The frontend will typically be accessible at `http://localhost:3000`.
 
 ## Technology Stack
 
@@ -38,21 +58,25 @@ Are you managing investments across multiple brokerages? Do you want to go beyon
 *   **Data Analysis & Manipulation:** Pandas, NumPy
 *   **Price Data Source:** Yahoo Finance (via `yfinance` library)
 *   **Dependency Management:** Poetry
+*   **Frontend Framework:** Nuxt.js (with Vue.js)
+*   **UI Components:** Vuetify
+*   **Charting Library:** ApexCharts
+*   **State Management (Frontend):** Pinia
 
 ## Current Status
 
 Portana is currently a functional backend system. Key functionalities like data import (for supported brokers), price fetching, position management, and metric calculation (TWR, Sharpe, CAGR) are implemented.
 
 *   **Interaction:** Via REST API and CLI.
-*   **User Interface:** No GUI is provided with this backend. Users would typically interact with Portana programmatically or via a custom-built frontend.
+*   **User Interface:** A Nuxt.js based GUI is available, providing data visualization and user interaction. See the 'User Interface (Frontend)' section for more details.
 
 ## Target Audience
 
 *   **Developers:** Looking for a Python-based backend to build custom financial dashboards or integrate portfolio tracking.
-*   **Data-Savvy DIY Investors:** Comfortable with APIs/CLI or willing to set up a separate frontend to gain deeper insights into their portfolio.
+*   **Data-Savvy DIY Investors:** Who can benefit from both direct API/CLI access and the provided user interface for deeper insights.
 *   **Investors Seeking Specific Metrics:** Particularly those interested in Time-Weighted Return and other advanced analytics.
 
-## Getting Started (Backend Setup)
+## Getting Started
 
 These instructions are for setting up the Portana backend. For more detailed backend developer information, see `backend/README.md`.
 
@@ -120,12 +144,17 @@ Once the backend is running (e.g., via `uvicorn app.api_main:app --reload` from 
 *   API documentation (Swagger UI): `http://localhost:8000/docs`
 *   Alternative API documentation (ReDoc): `http://localhost:8000/redoc`
 
+**Frontend Access:**
+
+Once the backend is running and the frontend is started (see `frontend/portfolio/README.md` for setup), you can typically access the user interface at `http://localhost:3000`.
+
 ## Future Development & Contributing
 
 Portana has the potential to evolve, particularly as a robust, developer-friendly backend for portfolio analytics.
 
 *   **Potential Directions:**
     *   Enhancing API capabilities and documentation.
+    *   **Enhancing the User Interface:** Improving UI/UX, adding more interactive visualizations, and potentially incorporating user-configurable dashboards or settings directly via the frontend.
     *   Expanding the range of supported broker importers or developing a more generic CSV import mapping tool.
     *   Adding more sophisticated financial analytics and risk metrics.
     *   Improving error handling and test coverage.
