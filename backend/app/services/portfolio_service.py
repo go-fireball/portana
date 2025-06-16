@@ -35,12 +35,11 @@ def get_portfolio_series(account_id: str, from_date: date) -> pd.Series:
     return pd.Series({row.as_of_date: float(row[1]) for row in rows})
 
 
-def get_cash_flows(account_id: UUID, from_date: date) -> pd.Series:
+def get_cash_flows(account_id: UUID, from_date: date) -> tuple[pd.Series, pd.Series]:
     """
-    Returns a Pandas Series of net cash flows by date.
-    Includes:
-    - Buys/Sells of stocks/options (cash out/in)
-    - CASH symbol transactions (deposits/withdrawals)
+    Returns two Pandas Series of cash flows by date:
+    - external_cash_flow: deposits/withdrawals (symbol == "CASH")
+    - internal_trade_flow: cash impact of stock/option buys/sells (symbol != "CASH")
     """
     result = (
         session.query(Transaction.date, Transaction.symbol, Transaction.action,
@@ -51,21 +50,28 @@ def get_cash_flows(account_id: UUID, from_date: date) -> pd.Series:
         .all()
     )
 
-    cash_flow_map = {}
+    external_cash_map = {}
+    internal_trade_map = {}
 
     for txn_date, symbol, action, quantity, price in result:
         qty = float(quantity or 0)
         price = float(price or 0)
+
         if symbol == "CASH":
-            flow = qty  # Explicit cash transfer
+            flow = qty  # Deposit or withdrawal
+            if flow != 0:
+                external_cash_map.setdefault(txn_date, 0.0)
+                external_cash_map[txn_date] += flow
         else:
-            flow = -qty * price  # Security buy/sell
+            flow = -qty * price  # Trade: buy (-), sell (+)
+            if flow != 0:
+                internal_trade_map.setdefault(txn_date, 0.0)
+                internal_trade_map[txn_date] += flow
 
-        if flow != 0:
-            cash_flow_map.setdefault(txn_date, 0.0)
-            cash_flow_map[txn_date] += flow
-
-    return pd.Series(cash_flow_map).sort_index()
+    return (
+        pd.Series(external_cash_map).sort_index(),
+        pd.Series(internal_trade_map).sort_index()
+    )
 
 
 def compute_daily_returns(portfolio_series: pd.Series, cash_flows: pd.Series) -> pd.Series:
@@ -177,9 +183,9 @@ def update_portfolio_metrics(email: str):
         if portfolio_series.empty:
             continue
 
-        cash_flows = get_cash_flows(account.account_id, start_date)
-        daily_returns = compute_daily_returns(portfolio_series, cash_flows)
-        twr = compute_twr_series(portfolio_series, cash_flows)
+        external_cash_flows, _ = get_cash_flows(account.account_id, start_date)
+        daily_returns = compute_daily_returns(portfolio_series, external_cash_flows)
+        twr = compute_twr_series(portfolio_series, external_cash_flows)
         sharpe = compute_sharpe_ratio_series(daily_returns)
         drawdown = compute_drawdown_series(portfolio_series)
 
