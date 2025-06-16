@@ -17,3 +17,4 @@ class TransactionType(str, Enum):
     MARGIN_INTEREST = "margin_interest"
     MONEYLINK_TRANSFER = "moneylink_transfer"
     JOURNALED_SHARES = "journaled_shares"
+    BANK_INTEREST = "bank_interest"

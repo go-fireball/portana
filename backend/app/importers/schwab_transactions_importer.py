@@ -48,6 +48,7 @@ def import_schwab_transactions(file_path: str, email: str, account_number: str) 
                 TransactionType.DIVIDEND,
                 TransactionType.MONEYLINK_TRANSFER,
                 TransactionType.JOURNAL,
+                TransactionType.BANK_INTEREST,
             }
 
             if raw_symbol in ("", "nan") and is_cash_like:

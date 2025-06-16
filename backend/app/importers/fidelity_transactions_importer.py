@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List
+import re
 import pandas as pd
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,24 @@ from app.models.account import Account
 from app.models.user import User
 
 session: Session = SessionLocal()
+
+
+def parse_option_symbol(raw: str):
+    """Parse Fidelity-style option symbol like -NVDA250919C70"""
+    clean = raw.lstrip("+-")
+    match = re.match(r"^([A-Z]+)(\d{6})([CP])(\d+(\.\d+)?)$", clean)
+    if not match:
+        raise ValueError(f"Unrecognized option symbol format: {raw}")
+
+    base, expiry_str, opt_type, strike, _ = match.groups()
+    expiry = datetime.strptime(expiry_str, "%y%m%d").date()
+    return {
+        "formatted_symbol": f"{base}_{expiry.isoformat()}_{strike}_{opt_type.upper()}",
+        "base_symbol": base,
+        "expiry": expiry,
+        "strike": float(strike),
+        "type": "call" if opt_type.upper() == "C" else "put"
+    }
 
 
 def import_fidelity_transactions(file_path: str, email: str, account_number: str) -> List[Transaction]:
@@ -46,15 +65,39 @@ def import_fidelity_transactions(file_path: str, email: str, account_number: str
                 price = 1.0
             elif action_str.upper().startswith("YOU BOUGHT"):
                 action = TransactionType.BUY
+            elif action_str.upper().startswith("YOU SOLD OPENING"):
+                action = TransactionType.SELL_TO_OPEN
             else:
                 print(f"⚠️ Unknown or unhandled action: {action_str}")
                 continue
 
             instrument_type = "cash" if symbol == "CASH" else "stock"
 
+            raw_symbol = symbol
+            if raw_symbol.startswith("-") or raw_symbol.startswith("+"):
+                parsed = parse_option_symbol(raw_symbol)
+                option_details = {
+                    "base_symbol": parsed["base_symbol"],
+                    "expiry": parsed["expiry"].isoformat(),
+                    "strike": parsed["strike"],
+                    "type": parsed["type"]
+                }
+                # action = TransactionType.SELL_TO_OPEN if raw_symbol.startswith("-") else TransactionType.BUY_TO_OPEN
+                instrument_type = "option"
+                current_symbol = f"{option_details['base_symbol']}_{option_details['expiry']}_{option_details['strike']}_{option_details['type'].upper()}"
+            else:
+                current_symbol = raw_symbol
+
+            if instrument_type == "option":
+                action = (
+                    TransactionType.BUY_TO_OPEN if quantity > 0 else TransactionType.SELL_TO_OPEN
+                )
+            else:
+                action = TransactionType.BUY if quantity > 0 else TransactionType.SELL
+
             txn = Transaction(
                 account_id=account.account_id,
-                symbol=symbol,
+                symbol=current_symbol,
                 action=action,
                 instrument_type=instrument_type,
                 quantity=quantity,
