@@ -55,15 +55,8 @@ def recalculate_positions(email: str, initial_load: bool = False):
             end_date = dateutil.utils.today().date()
 
             # Start by aggregating until start_date
-            positions = session.query(Position).filter_by(account_id=account.account_id).all()
-            symbol_data = {
-                pos.symbol: {
-                    "qty": pos.quantity,
-                    "total_cost": pos.avg_cost * pos.quantity if pos.avg_cost else Decimal(0),
-                    "first_action": pos.action
-                }
-                for pos in positions
-            }
+            prev_txns: list[Type[Transaction]] = [txn for txn in txns if txn.date < start_date]
+            symbol_data = aggregate_transactions(prev_txns, track_cash=False)
             previous_day_data = deepcopy(symbol_data)
 
             current_date = start_date

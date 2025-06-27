@@ -3,3 +3,8 @@ export interface PortfolioPoint {
     total_value: number;    // e.g., 12345.67
 }
 
+export interface Price{
+    symbol: string;
+    price_date: string;
+    price: number;
+}

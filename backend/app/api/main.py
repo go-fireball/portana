@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from app.api.routes import users, accounts, positions
+from app.api.routes import users, accounts, positions, prices
 
 app = FastAPI(
     title="Portana API",
@@ -29,3 +29,4 @@ app.add_middleware(
 app.include_router(users.router, prefix="/api/users")
 app.include_router(accounts.router, prefix="/api/accounts")
 app.include_router(positions.router, prefix="/api/positions")
+app.include_router(prices.router, prefix="/api/prices")
