@@ -49,13 +49,21 @@ def recalculate_positions(email: str, initial_load: bool = False):
             last_snapshot_date = session.query(func.max(PositionSnapshot.as_of_date)).filter_by(
                 account_id=account.account_id
             ).scalar()
-
+            #  I guess we need to make sure the previous data is reconstructed with positions and not from transactions
+            #  getting it from transactions may mess up the cash
             start_date = last_snapshot_date + timedelta(days=1) if last_snapshot_date else txns[0].date
             end_date = dateutil.utils.today().date()
 
             # Start by aggregating until start_date
-            prev_txns: list[Type[Transaction]] = [txn for txn in txns if txn.date < start_date]
-            symbol_data = aggregate_transactions(prev_txns, track_cash=False)
+            positions = session.query(Position).filter_by(account_id=account.account_id).all()
+            symbol_data = {
+                pos.symbol: {
+                    "qty": pos.quantity,
+                    "total_cost": pos.avg_cost * pos.quantity if pos.avg_cost else Decimal(0),
+                    "first_action": pos.action
+                }
+                for pos in positions
+            }
             previous_day_data = deepcopy(symbol_data)
 
             current_date = start_date
