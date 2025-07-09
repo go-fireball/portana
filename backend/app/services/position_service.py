@@ -148,8 +148,10 @@ def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]], tra
             sale_proceeds = price * closed_qty
             if instrument_type == "option":
                 sale_proceeds *= 100
-
-            realized = sale_proceeds - cost_basis
+            if action in ["sell", "sell_to_close"]:
+                realized = sale_proceeds - cost_basis
+            else:
+                realized = cost_basis - sale_proceeds
 
             daily_realized_pnl.append({
                 "symbol": symbol,
