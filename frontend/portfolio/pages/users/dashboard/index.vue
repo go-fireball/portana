@@ -1,6 +1,7 @@
 <template>
   <v-sheet color="background" class="pa-6" min-height="100vh">
     <v-container>
+      <v-btn @click="exportToCSV" color="primary">Export CSV</v-btn>
       <v-data-table
           :items="computedPositions || []"
           class="elevation-1 mt-4"
@@ -24,6 +25,9 @@
         <template #item.pnl="{ item }">
           <div class="text-end pe-4">{{ formatCurrency(item.pnl) }}</div>
         </template>
+        <template #item.pnl_percent="{ item }">
+          <div class="text-end pe-4">{{ formatCurrency(item.pnl_percent) }}</div>
+        </template>
 
         <template v-slot:tfoot>
           <tr>
@@ -33,6 +37,7 @@
             <td class="text-end pe-4">&nbsp;</td> <!-- No total current price -->
             <td class="text-end pe-4">{{ formatCurrency(computedTotal?.totalValue) }}</td>
             <td class="text-end pe-4">{{ formatCurrency(computedTotal?.totalPnl) }}</td>
+            <td class="text-end pe-4">&nbsp;</td> <!-- No total current price -->
           </tr>
         </template>
 
@@ -61,6 +66,7 @@ import userService from "~/services/userService";
 import PortfolioSummaryChart from "~/components/PortfolioSummaryChart.vue";
 import type {Price} from "~/types/portfolioPoint";
 import priceService from "~/services/priceService";
+import Papa from 'papaparse' // For CSV export
 
 
 const headers = [
@@ -70,6 +76,7 @@ const headers = [
   {title: 'Current Price', value: 'current_price'},
   {title: 'Total Value', value: 'total_value'},
   {title: 'P/L', value: 'pnl'},
+  {title: 'P/L %', value: 'pnl_percent'},
 
 ]
 
@@ -157,4 +164,31 @@ const {data: prices} = await useAsyncData<Price[]>('get-prices', async () => {
 }, {lazy: true})
 
 
+// existing imports and variables remain unchanged...
+
+// CSV Export function
+const exportToCSV = () => {
+  const dataToExport = computedPositions.value.map(item => ({
+    Symbol: item.symbol,
+    Quantity: item.quantity.toFixed(4),
+    'Total Cost': item.total_cost.toFixed(2),
+    'Current Price': item.current_price.toFixed(2),
+    'Total Value': item.total_value.toFixed(2),
+    'P/L': item.pnl.toFixed(2),
+    'P/L %': item.pnl_percent.toFixed(2),
+  }))
+
+  const csv = Papa.unparse(dataToExport)
+
+  // Create a Blob object with the CSV data
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'})
+
+  // Create a temporary anchor element and trigger download
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.setAttribute('download', 'portfolio-data.csv')
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 </script>
