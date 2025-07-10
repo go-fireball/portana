@@ -109,3 +109,20 @@ def get_rolling_returns(user_id: str, db: Session = Depends(get_db)):
             for snapshot_date, account_id, account_number, rolling_7d, rolling_30d in results
         ]
     }
+
+
+@router.get("/{user_id}/accounts")
+def get_accounts_by_email(user_id: str, db: Session = Depends(get_db)):
+    accounts = db.query(Account).filter(Account.user_id == user_id).all()
+    return {
+        "accounts": [
+            {
+                "account_id": str(account.account_id),
+                "account_number": account.account_number,
+                "brokerage": account.brokerage,
+                "nickname": account.nickname,
+                "created_at": account.created_at.isoformat(),
+            }
+            for account in accounts
+        ],
+    }

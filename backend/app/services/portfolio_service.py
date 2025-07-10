@@ -173,6 +173,13 @@ def update_portfolio_metrics(email: str):
         raise ValueError(f"No user with email {email}")
 
     accounts = session.query(Account).filter_by(user_id=user.user_id).all()
+    account_ids = [a.account_id for a in accounts]
+    #  Delete all PortfolioMetricsSnapshot that is matching the accounts
+    # Step 2: Delete all matching PortfolioMetricsSnapshot records
+    session.query(PortfolioMetricsSnapshot).filter(
+        PortfolioMetricsSnapshot.account_id.in_(account_ids)
+    ).delete(synchronize_session=False)
+    session.commit()
 
     for account in accounts:
         last_snapshot = session.query(func.max(PortfolioMetricsSnapshot.snapshot_date)) \

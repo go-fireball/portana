@@ -16,14 +16,11 @@ from app.models.position import Position
 from app.models.position_snapshots import PositionSnapshot
 from app.models.transaction import Transaction
 from app.models.user import User
+from app.services.symbol import get_base_symbol
 
 session: Session = SessionLocal()
 
 CUTOFF_DATE = date(2025, 6, 1)
-
-
-def get_base_symbol(symbol: str) -> str:
-    return symbol.split("_")[0] if "_" in symbol else symbol
 
 
 def clear_positions(account: Type[Account]):
