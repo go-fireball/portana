@@ -1,7 +1,7 @@
 import type {User} from "~/types/user";
 import {useApiClient} from "~/composables/useApiClient";
 import type {PositionSummary} from "~/types/positionSummary";
-import type {PortfolioPoint} from "~/types/portfolioPoint";
+import type {PortfolioPoint, RealizedPnlPoint, UnrealizedPnlPoint} from "~/types/portfolioPoint";
 import type {RollingReturnPoint} from "~/types/rollingReturnPoint";
 
 type UsersResponse = {
@@ -13,6 +13,14 @@ type PositionSummaryResponse = {
 
 type PortfolioSummaryResponse = {
     portfolio: PortfolioPoint[];
+}
+
+type RealizedPnlResponse = {
+    realized_pnl: RealizedPnlPoint[];
+}
+
+type UnrealizedPnlResponse = {
+    unrealized_pnl: UnrealizedPnlPoint[];
 }
 
 type RollingReturnsResponse = {
@@ -46,9 +54,27 @@ const getPortfolioSummaries = async (userId: string): Promise<PortfolioPoint[]> 
     return response.data.portfolio
 }
 
+
+const getRealizedPnl = async (userId: string): Promise<RealizedPnlPoint[]> => {
+    const apiClient = useApiClient();
+    const response = await apiClient.get<RealizedPnlResponse>(
+        `/api/users/${userId}/realized_pnl`)
+    return response.data.realized_pnl
+}
+
+
+const getUnrealizedPnl = async (userId: string): Promise<UnrealizedPnlPoint[]> => {
+    const apiClient = useApiClient();
+    const response = await apiClient.get<UnrealizedPnlResponse>(
+        `/api/users/${userId}/unrealized_pnl`)
+    return response.data.unrealized_pnl
+}
+
 export default {
     getAllUsers,
     getPositionSummaries,
     getPortfolioSummaries,
-    getRollingReturns
+    getRollingReturns,
+    getRealizedPnl,
+    getUnrealizedPnl
 }

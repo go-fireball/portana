@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import User, Account, Position, PositionSnapshot, PortfolioMetricsSnapshot
+from app.models import User, Account, Position, PositionSnapshot, PortfolioMetricsSnapshot, RealizedPnL
 
 router = APIRouter()
 
@@ -124,5 +124,70 @@ def get_accounts_by_email(user_id: str, db: Session = Depends(get_db)):
                 "created_at": account.created_at.isoformat(),
             }
             for account in accounts
+        ],
+    }
+
+
+@router.get("/{user_id}/realized_pnl")
+def get_realized_pnl_by_user_id(user_id: str, db: Session = Depends(get_db)):
+    account_ids = (
+        db.query(Account.account_id)
+        .filter(Account.user_id == user_id)
+        .subquery()
+    )
+
+    results = (
+        db.query(
+            RealizedPnL.date.label("date"),
+            func.sum(RealizedPnL.realized_pnl).label("realized_pnl"),
+        )
+        .filter(RealizedPnL.account_id.in_(account_ids.select()))
+        .group_by(RealizedPnL.date)
+        .order_by(RealizedPnL.date)
+        .all()
+    )
+
+    return {
+        "realized_pnl": [
+            {
+                "date": str(realized_pnl.date),
+                "realized_pnl": realized_pnl.realized_pnl,
+            }
+            for realized_pnl in results
+        ],
+    }
+
+
+@router.get("/{user_id}/unrealized_pnl")
+def get_unrealized_pnl_by_user_id(user_id: str, db: Session = Depends(get_db)):
+    account_ids = (
+        db.query(Account.account_id)
+        .filter(Account.user_id == user_id)
+        .subquery()
+    )
+    results = (
+        db.query(
+            PositionSnapshot.as_of_date.label("date"),
+            func.sum(PositionSnapshot.total_value - (PositionSnapshot.quantity * PositionSnapshot.avg_cost)).label(
+                "unrealized_pnl"),
+        )
+        .filter(PositionSnapshot.account_id.in_(account_ids.select()))
+        .group_by(PositionSnapshot.as_of_date)
+        .order_by(PositionSnapshot.as_of_date)
+        .all()
+    )
+
+    #  The price is stored as for single unit, if the symbol has "_" it is considered as option
+    #  the current price should be multiplied by 100
+    #  the cost basis is quantity * avg_cost
+    #  the total value is quantity * avg_cost
+
+    return {
+        "unrealized_pnl": [
+            {
+                "date": str(unrealized_pnl.date),
+                "unrealized_pnl": unrealized_pnl.unrealized_pnl,
+            }
+            for unrealized_pnl in results
         ],
     }

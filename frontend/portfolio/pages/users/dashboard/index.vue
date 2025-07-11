@@ -55,6 +55,12 @@
           <PortfolioRollingReturnChart/>
         </v-card>
       </client-only>
+
+      <client-only>
+        <v-card class="mt-8 pa-4">
+          <PnlChart/>
+        </v-card>
+      </client-only>
     </v-container>
   </v-sheet>
 </template>
