@@ -68,6 +68,7 @@
 <script setup lang="ts">
 import {ref, onMounted} from 'vue'
 import type {PositionSummary} from '~/types/positionSummary'
+import {useAuthStore} from "~/stores/auth";
 import userService from "~/services/userService";
 import PortfolioSummaryChart from "~/components/PortfolioSummaryChart.vue";
 import type {Price} from "~/types/portfolioPoint";

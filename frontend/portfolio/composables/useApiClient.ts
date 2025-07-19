@@ -1,31 +1,33 @@
 // composables/useApiClient.ts
-import type {AxiosInstance} from 'axios'
-import axios from "axios";
+import type { AxiosInstance } from 'axios'
 
 let apiClient: AxiosInstance | null = null
 
-export const useApiClient = (): AxiosInstance => {
+export const useApiClient = async (): Promise<AxiosInstance> => {
     if (apiClient) return apiClient
+
+    // ✅ Lazy load axios to avoid static analysis
+    const { default: axios } = await import('axios')
 
     const config = useRuntimeConfig()
     const apiUrl = config.public.apiUrl as string
+
     apiClient = axios.create({
         baseURL: apiUrl,
-        timeout: 8000
+        timeout: 8000,
     })
 
-    // Optional: Add interceptors here
-    // ✅ Add request interceptor to attach JWT
-    apiClient.interceptors.request.use((request) => {
-        if (import.meta.client) {
-            const authStore = useAuthStore()
-            const token = authStore?.user?.token
+    // ✅ Conditionally attach client-only interceptors
+    if (import.meta.client) {
+        const authStore = useAuthStore()
+        apiClient.interceptors.request.use((request) => {
+            const token = authStore.user?.token
             if (token) {
                 request.headers.Authorization = `Bearer ${token}`
             }
-        }
-        return request
-    })
+            return request
+        })
+    }
 
     return apiClient
 }

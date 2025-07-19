@@ -15,6 +15,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import userService from '~/services/userService'
+import {useAuthStore} from "~/stores/auth";
 import type { User } from '~/types/user'
 const {
   goToDashboard,

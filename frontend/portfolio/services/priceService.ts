@@ -6,7 +6,7 @@ type PricesResponse = {
 }
 
 const getPrices = async (): Promise<Price[]> => {
-    const apiClient = useApiClient();
+    const apiClient = await useApiClient();
     const response = await apiClient.get<PricesResponse>('/api/prices')
     return response.data.prices
 }
