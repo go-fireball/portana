@@ -234,5 +234,5 @@ def update_portfolio_metrics(email: str):
         print(f"✅ Metrics updated for account {account.account_id}")
 
 
-if __name__ == "__main__":
+def recalculate_portfolio_metrics():
     update_portfolio_metrics('venkatachalapatee@gmail.com')

@@ -7,6 +7,7 @@ from app.importers.schwab_lot_importer import import_schwab_lot_details
 from app.importers.schwab_transactions_importer import import_schwab_transactions
 from app.importers.vanguard_transactions_importer import import_vanguard_transactions
 from app.services.account_service import create_account
+from app.services.portfolio_service import recalculate_portfolio_metrics
 from app.services.position_service import recalculate_positions
 from app.services.price_service import fetch_and_store_prices
 from app.services.user_service import create_user
@@ -45,6 +46,9 @@ def main():
     fetch_prices_parser = subparsers.add_parser("fetch-prices",
                                                 help="Fetch current prices for all distinct symbols in positions.")
 
+    # Fetch latest prices
+    fetch_prices_parser = subparsers.add_parser("recalculate-portfolio",
+                                                help="recalculate portfolio and risk metrics")
     args = parser.parse_args()
 
     if args.command == "create-user":
@@ -83,6 +87,8 @@ def main():
         recalculate_positions(args.email, args.initial_load)
     elif args.command == "fetch-prices":
         fetch_and_store_prices()
+    elif args.command == "recalculate-portfolio":
+        recalculate_portfolio_metrics()
     else:
         parser.print_help()
 
