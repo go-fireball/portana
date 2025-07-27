@@ -61,6 +61,31 @@
           <PnlChart/>
         </v-card>
       </client-only>
+
+
+      <v-divider class="my-8"></v-divider>
+
+      <div v-if="positionsByAccount">
+        <h2 class="text-h5 mb-4">Positions by Account</h2>
+
+        <div v-for="(accountPositions, accountId) in positionsByAccount.positions_by_account" :key="accountId" class="mb-10">
+          <h3 class="text-h6 mb-2">Account ID: {{ accountId }}</h3>
+
+          <v-data-table
+              :items="accountPositions"
+              :headers="headersByAccount"
+              class="elevation-1"
+          >
+            <template #item.quantity="{ item }">
+              <div class="text-end pe-4">{{ item.quantity.toFixed(4) }}</div>
+            </template>
+            <template #item.total_cost="{ item }">
+              <div class="text-end pe-4">{{ formatCurrency(item.total_cost) }}</div>
+            </template>
+          </v-data-table>
+        </div>
+      </div>
+
     </v-container>
   </v-sheet>
 </template>
@@ -70,6 +95,7 @@ import {ref, onMounted} from 'vue'
 import type {PositionSummary} from '~/types/positionSummary'
 import {useAuthStore} from "~/stores/auth";
 import userService from "~/services/userService";
+import PositionSummaryByAccountResponse from "~/services/userService"
 import PortfolioSummaryChart from "~/components/PortfolioSummaryChart.vue";
 import type {Price} from "~/types/portfolioPoint";
 import priceService from "~/services/priceService";
@@ -86,6 +112,13 @@ const headers = [
   {title: 'P/L %', value: 'pnl_percent'},
 
 ]
+
+const headersByAccount = [
+  { title: 'Symbol', value: 'symbol', sortable: true },
+  { title: 'Quantity', value: 'quantity' },
+  { title: 'Total Cost', value: 'total_cost' },
+];
+
 
 const authStore = useAuthStore()
 
@@ -157,7 +190,13 @@ const computedPositions = computed(() => {
 })
 
 
-const {data: positions} = await useAsyncData<PositionSummary[]>(`get-position-summary-by-user-id`, async () => {
+const {data: positionsByAccount} = await useAsyncData<PositionSummaryByAccountResponse>(`get-position-summary-by-user-id`, async () => {
+  const userId = authStore.user!.id
+  const positionSummariesByAccount = await userService.getPositionSummariesByAccount(userId)
+  return positionSummariesByAccount
+}, {lazy: true});
+
+const {data: positions} = await useAsyncData<PositionSummary[]>(`get-position-summary-by-account-by-user-id`, async () => {
   const userId = authStore.user!.id
   const positionSummaries = await userService.getPositionSummaries(userId)
   return [...positionSummaries].sort((a, b) =>

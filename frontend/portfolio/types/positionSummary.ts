@@ -3,4 +3,3 @@ export interface PositionSummary {
     quantity: number
     total_cost: number
 }
-

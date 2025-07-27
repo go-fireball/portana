@@ -47,8 +47,10 @@ def main():
                                                 help="Fetch current prices for all distinct symbols in positions.")
 
     # Fetch latest prices
-    fetch_prices_parser = subparsers.add_parser("recalculate-portfolio",
+    recalculate_portfolio = subparsers.add_parser("recalculate-portfolio",
                                                 help="recalculate portfolio and risk metrics")
+    recalculate_portfolio.add_argument("--email", required=False)
+    
     args = parser.parse_args()
 
     if args.command == "create-user":

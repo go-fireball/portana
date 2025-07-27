@@ -18,6 +18,34 @@ def list_users(db: Session = Depends(get_db)):
         ]
     }
 
+@router.get("/{user_id}/positions/by_account")
+def get_positions_by_account(user_id: str, db: Session = Depends(get_db)):
+    # Join with Account to get account_number
+    results = (
+        db.query(
+            Account.account_number,
+            Position.symbol,
+            func.sum(Position.quantity).label("total_quantity"),
+            func.sum(Position.quantity * Position.avg_cost).label("total_cost")
+        )
+        .join(Account, Account.account_id == Position.account_id)
+        .filter(Account.user_id == user_id)
+        .group_by(Account.account_number, Position.symbol)
+        .all()
+    )
+
+    # Structure the response
+    positions_by_account = {}
+    for account_number, symbol, quantity, total_cost in results:
+        if account_number not in positions_by_account:
+            positions_by_account[account_number] = []
+        positions_by_account[account_number].append({
+            "symbol": symbol,
+            "quantity": round(float(quantity), 4),
+            "total_cost": round(float(total_cost), 4)
+        })
+
+    return {"positions_by_account": positions_by_account}
 
 @router.get("/{user_id}/positions")
 def get_positions(user_id: str, db: Session = Depends(get_db)):

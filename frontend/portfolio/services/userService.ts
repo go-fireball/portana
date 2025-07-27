@@ -1,8 +1,8 @@
 import type {User} from "~/types/user";
 import {useApiClient} from "~/composables/useApiClient";
-import type {PositionSummary} from "~/types/positionSummary";
 import type {PortfolioPoint, RealizedPnlPoint, UnrealizedPnlPoint} from "~/types/portfolioPoint";
 import type {RollingReturnPoint} from "~/types/rollingReturnPoint";
+import type {PositionSummary} from "~/types/positionSummary";
 
 type UsersResponse = {
     users: User[]
@@ -10,6 +10,12 @@ type UsersResponse = {
 type PositionSummaryResponse = {
     positions: PositionSummary[]
 }
+
+type PositionSummaryByAccountResponse = {
+    positions_by_account: {
+        [accountId: string]: PositionSummary[];
+    };
+};
 
 type PortfolioSummaryResponse = {
     portfolio: PortfolioPoint[];
@@ -39,6 +45,14 @@ const getPositionSummaries = async (userId: string): Promise<PositionSummary[]> 
         `/api/users/${userId}/positions`)
     return response.data.positions
 }
+
+const getPositionSummariesByAccount = async (userId: string): Promise<PositionSummaryByAccountResponse> => {
+    const apiClient = await useApiClient();
+    const response = await apiClient.get<PositionSummaryByAccountResponse>(
+        `/api/users/${userId}/positions/by_account`)
+    return response.data
+}
+
 
 const getRollingReturns = async (userId: string): Promise<RollingReturnPoint[]> => {
     const apiClient = await useApiClient();
@@ -76,5 +90,6 @@ export default {
     getPortfolioSummaries,
     getRollingReturns,
     getRealizedPnl,
-    getUnrealizedPnl
+    getUnrealizedPnl,
+    getPositionSummariesByAccount
 }
