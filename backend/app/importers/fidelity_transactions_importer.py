@@ -67,6 +67,8 @@ def import_fidelity_transactions(file_path: str, email: str, account_number: str
                 action = TransactionType.BUY
             elif action_str.upper().startswith("YOU SOLD OPENING"):
                 action = TransactionType.SELL_TO_OPEN
+            elif action_str.upper().startswith("YOU SOLD CLOSING"):
+                action = TransactionType.SELL_TO_CLOSE
             else:
                 print(f"⚠️ Unknown or unhandled action: {action_str}")
                 continue
@@ -87,8 +89,11 @@ def import_fidelity_transactions(file_path: str, email: str, account_number: str
                 current_symbol = f"{option_details['base_symbol']}_{option_details['expiry']}_{option_details['strike']}_{option_details['type'].upper()}"
             else:
                 current_symbol = raw_symbol
-
-            if instrument_type == "option":
+            if instrument_type == "option" and action == TransactionType.SELL_TO_CLOSE:
+                action = TransactionType.SELL_TO_CLOSE
+            elif instrument_type == "option":
+                # if action_str.upper().startswith("YOU SOLD OPENING"):
+                #     action = TransactionType.SELL_TO_OPEN
                 action = (
                     TransactionType.BUY_TO_OPEN if quantity > 0 else TransactionType.SELL_TO_OPEN
                 )

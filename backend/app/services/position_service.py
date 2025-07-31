@@ -126,6 +126,55 @@ def update_with_day_transactions(symbol_data, txns: list[Type[Transaction]], tra
                 symbol_data["CASH"]["first_action"] = TransactionType.BUY.value
             continue  # ✅ skip further processing
 
+        # Handle journaled shares (transfers between accounts)
+        if action == TransactionType.JOURNALED_SHARES.value or action == TransactionType.JOURNAL.value:
+            # For the source account (negative quantity), we're removing shares without realizing P&L
+            # For the destination account (positive quantity), we're adding shares with the same cost basis
+            if symbol_data[symbol]["first_action"] is None:
+                symbol_data[symbol]["first_action"] = TransactionType.BUY.value
+
+            # Try to get cost basis from journal_details if available
+            journal_cost_basis = None
+            if hasattr(txn, 'journal_details') and txn.journal_details:
+                try:
+                    if isinstance(txn.journal_details, dict) and 'cost_basis' in txn.journal_details:
+                        journal_cost_basis = Decimal(str(txn.journal_details['cost_basis']))
+                except (ValueError, TypeError):
+                    # If we can't parse the cost basis, we'll calculate it proportionally
+                    pass
+
+            # Simply adjust the quantity and total cost proportionally
+            if qty != 0:
+                if symbol_data[symbol]["qty"] != 0:
+                    # Transfer the cost basis proportionally to quantity being transferred
+                    if journal_cost_basis is not None and qty > 0:
+                        # Use provided cost basis for incoming transfers
+                        transferred_cost = journal_cost_basis
+                    else:
+                        # Calculate proportionally for outgoing transfers or when no cost basis is provided
+                        cost_ratio = abs(qty) / symbol_data[symbol]["qty"] if qty < 0 else 0
+                        transferred_cost = symbol_data[symbol]["total_cost"] * cost_ratio if qty < 0 else amount
+
+                    # Update total cost - subtract for outgoing, add for incoming
+                    if qty < 0:  # Shares leaving this account
+                        symbol_data[symbol]["total_cost"] -= transferred_cost
+                    else:  # Shares coming into this account
+                        symbol_data[symbol]["total_cost"] += transferred_cost
+                else:
+                    # If no existing position, just add the cost basis for incoming shares
+                    if qty > 0:
+                        if journal_cost_basis is not None:
+                            symbol_data[symbol]["total_cost"] += journal_cost_basis
+                        else:
+                            symbol_data[symbol]["total_cost"] += amount
+
+                # Update the quantity
+                symbol_data[symbol]["qty"] += qty
+
+            # Skip further processing as this is not a buy/sell that affects realized P&L
+            continue
+
+                    # Set first_action for symbols that don't have it yet
         if symbol_data[symbol]["first_action"] is None:
             if instrument_type == "option" and action in ["buy", "buy_to_open", "sell_to_open"]:
                 symbol_data[symbol]["first_action"] = action
