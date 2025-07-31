@@ -11,7 +11,7 @@ type PositionSummaryResponse = {
     positions: PositionSummary[]
 }
 
-type PositionSummaryByAccountResponse = {
+export type PositionSummaryByAccountResponse = {
     positions_by_account: {
         [accountId: string]: PositionSummary[];
     };

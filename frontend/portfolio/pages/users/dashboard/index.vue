@@ -50,11 +50,18 @@
         </v-card>
       </client-only>
 
+      <!-- Portfolio Metrics Chart -->
       <client-only>
         <v-card class="mt-8 pa-4">
-          <PortfolioRollingReturnChart/>
+          <PortfolioMetricsChart/>
         </v-card>
       </client-only>
+
+<!--      <client-only>-->
+<!--        <v-card class="mt-8 pa-4">-->
+<!--          <PortfolioRollingReturnChart/>-->
+<!--        </v-card>-->
+<!--      </client-only>-->
 
       <client-only>
         <v-card class="mt-8 pa-4">
@@ -95,8 +102,9 @@ import {ref, onMounted} from 'vue'
 import type {PositionSummary} from '~/types/positionSummary'
 import {useAuthStore} from "~/stores/auth";
 import userService from "~/services/userService";
-import PositionSummaryByAccountResponse from "~/services/userService"
+import type {PositionSummaryByAccountResponse} from "~/services/userService";
 import PortfolioSummaryChart from "~/components/PortfolioSummaryChart.vue";
+import PortfolioMetricsChart from "~/components/PortfolioMetricsChart.vue";
 import type {Price} from "~/types/portfolioPoint";
 import priceService from "~/services/priceService";
 import Papa from 'papaparse' // For CSV export
