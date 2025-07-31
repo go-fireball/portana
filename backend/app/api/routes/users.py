@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import User, Account, Position, PositionSnapshot, PortfolioMetricsSnapshot, RealizedPnL
+from app.models import User, Account, Position, PositionSnapshot, PortfolioMetricsSnapshot, RealizedPnL, UserPortfolioMetricsSnapshot
 
 router = APIRouter()
 
@@ -135,6 +135,34 @@ def get_rolling_returns(user_id: str, db: Session = Depends(get_db)):
                 "rolling_return_30d": float(rolling_30d or 0),
             }
             for snapshot_date, account_id, account_number, rolling_7d, rolling_30d in results
+        ]
+    }
+
+
+@router.get("/{user_id}/portfolio/metrics")
+def get_user_portfolio_metrics(user_id: str, db: Session = Depends(get_db)):
+    """Get portfolio metrics at the user level, aggregated across all accounts."""
+    results = (
+        db.query(UserPortfolioMetricsSnapshot)
+        .filter(UserPortfolioMetricsSnapshot.user_id == user_id)
+        .order_by(UserPortfolioMetricsSnapshot.snapshot_date.asc())
+        .all()
+    )
+
+    return {
+        "metrics": [
+            {
+                "snapshot_date": metric.snapshot_date.isoformat(),
+                "portfolio_value": float(metric.portfolio_value or 0),
+                "cash_balance": float(metric.cash_balance or 0),
+                "daily_return": float(metric.portfolio_daily_return or 0),
+                "twr_to_date": float(metric.twr_to_date or 0),
+                "rolling_return_7d": float(metric.rolling_return_7d or 0),
+                "rolling_return_30d": float(metric.rolling_return_30d or 0),
+                "sharpe_to_date": float(metric.sharpe_to_date or 0),
+                "drawdown_to_date": float(metric.drawdown_to_date or 0),
+            }
+            for metric in results
         ]
     }
 

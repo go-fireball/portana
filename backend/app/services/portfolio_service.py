@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, InstrumentedAttribute
 from sqlalchemy.sql import func
 
 from app.db import SessionLocal
-from app.models import TransactionType, PortfolioMetricsSnapshot, User, Account
+from app.models import TransactionType, PortfolioMetricsSnapshot, User, Account, UserPortfolioMetricsSnapshot
 from app.models.position_snapshots import PositionSnapshot
 from app.models.transaction import Transaction
 
@@ -35,6 +35,33 @@ def get_portfolio_series(account_id: str, from_date: date) -> pd.Series:
     return pd.Series({row.as_of_date: float(row[1]) for row in rows})
 
 
+def get_user_portfolio_series(user_id: UUID, from_date: date) -> pd.Series:
+    """
+    Returns a Pandas Series mapping each snapshot date to the total portfolio value
+    across all accounts for a given user, starting from the specified date (exclusive).
+    """
+    account_ids = session.query(Account.account_id).filter(Account.user_id == user_id).all()
+    if not account_ids:
+        return pd.Series()
+
+    account_ids = [str(acc_id[0]) for acc_id in account_ids]
+
+    rows = session.query(
+        PositionSnapshot.as_of_date,
+        func.sum(PositionSnapshot.total_value)
+    ).filter(
+        PositionSnapshot.account_id.in_(account_ids),
+        PositionSnapshot.symbol != "CASH",  # Exclude cash
+        PositionSnapshot.as_of_date > from_date
+    ).group_by(
+        PositionSnapshot.as_of_date
+    ).order_by(
+        PositionSnapshot.as_of_date
+    ).all()
+
+    return pd.Series({row.as_of_date: float(row[1]) for row in rows})
+
+
 def get_cash_flows(account_id: UUID, from_date: date) -> tuple[pd.Series, pd.Series]:
     """
     Returns two Pandas Series of cash flows by date:
@@ -45,6 +72,51 @@ def get_cash_flows(account_id: UUID, from_date: date) -> tuple[pd.Series, pd.Ser
         session.query(Transaction.date, Transaction.symbol, Transaction.action,
                       Transaction.quantity, Transaction.price)
         .filter(Transaction.account_id == account_id)
+        .filter(Transaction.date >= from_date)
+        .order_by(Transaction.date)
+        .all()
+    )
+
+    external_cash_map = {}
+    internal_trade_map = {}
+
+    for txn_date, symbol, action, quantity, price in result:
+        qty = float(quantity or 0)
+        price = float(price or 0)
+
+        if symbol == "CASH":
+            flow = qty  # Deposit or withdrawal
+            if flow != 0:
+                external_cash_map.setdefault(txn_date, 0.0)
+                external_cash_map[txn_date] += flow
+        else:
+            flow = -qty * price  # Trade: buy (-), sell (+)
+            if flow != 0:
+                internal_trade_map.setdefault(txn_date, 0.0)
+                internal_trade_map[txn_date] += flow
+
+    return (
+        pd.Series(external_cash_map).sort_index(),
+        pd.Series(internal_trade_map).sort_index()
+    )
+
+
+def get_user_cash_flows(user_id: UUID, from_date: date) -> tuple[pd.Series, pd.Series]:
+    """
+    Returns two Pandas Series of cash flows by date across all user accounts:
+    - external_cash_flow: deposits/withdrawals (symbol == "CASH")
+    - internal_trade_flow: cash impact of stock/option buys/sells (symbol != "CASH")
+    """
+    account_ids = session.query(Account.account_id).filter(Account.user_id == user_id).all()
+    if not account_ids:
+        return pd.Series(), pd.Series()
+
+    account_ids = [acc_id[0] for acc_id in account_ids]
+
+    result = (
+        session.query(Transaction.date, Transaction.symbol, Transaction.action,
+                      Transaction.quantity, Transaction.price)
+        .filter(Transaction.account_id.in_(account_ids))
         .filter(Transaction.date >= from_date)
         .order_by(Transaction.date)
         .all()
@@ -233,6 +305,82 @@ def update_portfolio_metrics(email: str):
         session.commit()
         print(f"✅ Metrics updated for account {account.account_id}")
 
+    # Calculate and store user-level metrics
+    update_user_portfolio_metrics(user.user_id)
+    print(f"✅ User-level metrics updated for {email}")
 
-def recalculate_portfolio_metrics():
-    update_portfolio_metrics('venkatachalapatee@gmail.com')
+
+def update_user_portfolio_metrics(user_id: UUID):
+    """
+    Calculate and store portfolio metrics at the user level by aggregating data across all accounts.
+    """
+    # Delete existing user portfolio metrics snapshots
+    session.query(UserPortfolioMetricsSnapshot).filter(
+        UserPortfolioMetricsSnapshot.user_id == user_id
+    ).delete(synchronize_session=False)
+    session.commit()
+
+    # Find the earliest start date from account-level metrics
+    earliest_date = session.query(func.min(PortfolioMetricsSnapshot.snapshot_date)) \
+        .join(Account, PortfolioMetricsSnapshot.account_id == Account.account_id) \
+        .filter(Account.user_id == user_id) \
+        .scalar()
+
+    if not earliest_date:
+        # No account-level metrics found
+        return
+
+    # Calculate user-level portfolio metrics
+    start_date = earliest_date - timedelta(days=1)  # Start one day before to include earliest date
+    portfolio_series = get_user_portfolio_series(user_id, start_date)
+
+    if portfolio_series.empty:
+        return
+
+    external_cash_flows, _ = get_user_cash_flows(user_id, start_date)
+    daily_returns = compute_daily_returns(portfolio_series, external_cash_flows)
+    twr = compute_twr_series(portfolio_series, external_cash_flows)
+    sharpe = compute_sharpe_ratio_series(daily_returns)
+    drawdown = compute_drawdown_series(portfolio_series)
+
+    for i in range(1, len(portfolio_series)):
+        snapshot_date = portfolio_series.index[i]
+        value = portfolio_series.iloc[i]
+
+        # Calculate total cash across all accounts for this date
+        cash_total = session.query(func.sum(PositionSnapshot.quantity)) \
+            .join(Account, PositionSnapshot.account_id == Account.account_id) \
+            .filter(
+                Account.user_id == user_id,
+                PositionSnapshot.as_of_date == snapshot_date,
+                PositionSnapshot.symbol == "CASH"
+            ).scalar() or 0
+
+        # Calculate rolling returns
+        rolling_7d = daily_returns.iloc[max(0, i - 6):i].add(1).prod() - 1 if i > 0 else 0
+        rolling_30d = daily_returns.iloc[max(0, i - 29):i].add(1).prod() - 1 if i > 0 else 0
+
+        twr_value = to_float(twr.get(snapshot_date))
+        sharpe_value = to_float(sharpe.get(snapshot_date))
+        drawdown_value = to_float(drawdown.get(snapshot_date))
+
+        session.merge(UserPortfolioMetricsSnapshot(
+            snapshot_date=snapshot_date,
+            user_id=user_id,
+            portfolio_value=to_float(value),
+            benchmark_value=None,
+            portfolio_daily_return=to_float(daily_returns.get(snapshot_date)),
+            benchmark_daily_return=None,
+            cash_balance=to_float(float(cash_total)),
+            twr_to_date=to_float(twr_value),
+            rolling_return_7d=to_float(rolling_7d),
+            rolling_return_30d=to_float(rolling_30d),
+            sharpe_to_date=to_float(sharpe_value),
+            drawdown_to_date=to_float(drawdown_value),
+        ))
+
+    session.commit()
+
+
+def recalculate_portfolio_metrics(email: str = 'venkatachalapatee@gmail.com'):
+    update_portfolio_metrics(email)

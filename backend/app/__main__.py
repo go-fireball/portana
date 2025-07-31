@@ -50,6 +50,7 @@ def main():
     recalculate_portfolio = subparsers.add_parser("recalculate-portfolio",
                                                 help="recalculate portfolio and risk metrics")
     recalculate_portfolio.add_argument("--email", required=False)
+    recalculate_portfolio.add_argument("--user", action="store_true", help="Calculate user-level metrics only")
     
     args = parser.parse_args()
 
@@ -90,7 +91,12 @@ def main():
     elif args.command == "fetch-prices":
         fetch_and_store_prices()
     elif args.command == "recalculate-portfolio":
-        recalculate_portfolio_metrics()
+        if args.email:
+            # If email is provided, recalculate for specific user
+            recalculate_portfolio_metrics(args.email)
+        else:
+            # Default email if none provided
+            recalculate_portfolio_metrics('venkatachalapatee@gmail.com')
     else:
         parser.print_help()
 

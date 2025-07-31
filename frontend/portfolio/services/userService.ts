@@ -1,6 +1,6 @@
 import type {User} from "~/types/user";
 import {useApiClient} from "~/composables/useApiClient";
-import type {PortfolioPoint, RealizedPnlPoint, UnrealizedPnlPoint} from "~/types/portfolioPoint";
+import type {PortfolioPoint, RealizedPnlPoint, UnrealizedPnlPoint, UserPortfolioMetric} from "~/types/portfolioPoint";
 import type {RollingReturnPoint} from "~/types/rollingReturnPoint";
 import type {PositionSummary} from "~/types/positionSummary";
 
@@ -27,6 +27,10 @@ type RealizedPnlResponse = {
 
 type UnrealizedPnlResponse = {
     unrealized_pnl: UnrealizedPnlPoint[];
+}
+
+type UserPortfolioMetricsResponse = {
+    metrics: UserPortfolioMetric[];
 }
 
 type RollingReturnsResponse = {
@@ -83,6 +87,12 @@ const getUnrealizedPnl = async (userId: string): Promise<UnrealizedPnlPoint[]> =
         `/api/users/${userId}/unrealized_pnl`)
     return response.data.unrealized_pnl
 }
+const getUserPortfolioMetrics = async (userId: string): Promise<UserPortfolioMetric[]> => {
+    const apiClient = await useApiClient();
+    const response = await apiClient.get<UserPortfolioMetricsResponse>(
+        `/api/users/${userId}/portfolio/metrics`)
+    return response.data.metrics
+}
 
 export default {
     getAllUsers,
@@ -91,5 +101,6 @@ export default {
     getRollingReturns,
     getRealizedPnl,
     getUnrealizedPnl,
-    getPositionSummariesByAccount
+    getPositionSummariesByAccount,
+    getUserPortfolioMetrics
 }

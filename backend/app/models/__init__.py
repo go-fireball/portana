@@ -7,3 +7,4 @@ from .user import User
 from .price import Price
 from .realized_pnl import RealizedPnL
 from .portfolio_metrics_snapshot import PortfolioMetricsSnapshot
+from .user_portfolio_metrics_snapshot import UserPortfolioMetricsSnapshot
